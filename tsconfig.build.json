@@ -1,0 +1,12 @@
+{
+  // Emits the server (plus the engine and shared code it imports) to dist/.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["server", "engine", "shared"],
+  "exclude": ["**/*.test.ts"]
+}

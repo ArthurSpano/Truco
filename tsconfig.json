@@ -1,0 +1,13 @@
+{
+  // Node side: server, engine, shared, tests and tool configs. Type-check only.
+  // The client has its own config in client/tsconfig.json.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["server", "engine", "shared", "*.config.ts"]
+}
