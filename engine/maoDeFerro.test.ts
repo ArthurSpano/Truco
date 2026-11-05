@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Card, CardId, GameMode, Rank, Suit } from '../shared/types.js';
 import { makeCard } from './deck.js';
 import { dealHand, playBlind, playCard, startHand, type HandState } from './hand.js';
-import { MAO_DE_FERRO_VALUE, isMaoDeFerro } from './maoDeFerro.js';
+import { isMaoDeFerro } from './maoDeFerro.js';
 import { decideMaoDeOnze, handsVisibleTo } from './maoDeOnze.js';
 import { seedRng } from './rng.js';
 import { seatsOf } from './seating.js';
@@ -63,12 +63,6 @@ function playAll(state: HandState, ...ids: CardId[]): HandState {
   return s;
 }
 
-describe('constants', () => {
-  it('a mão de ferro is worth 1 point', () => {
-    expect(MAO_DE_FERRO_VALUE).toBe(1);
-  });
-});
-
 describe('isMaoDeFerro', () => {
   it('is true only when both teams are at 11', () => {
     expect(isMaoDeFerro([11, 11])).toBe(true);
@@ -95,7 +89,7 @@ describe('starting a mão de ferro', () => {
     for (const mode of [2, 4, 6] as const) {
       const s = fresh(mode);
       expect(s.maoDeFerro).toBe(true);
-      expect(s.value).toBe(MAO_DE_FERRO_VALUE);
+      expect(s.value).toBe(1);
       expect(s.maoDeOnze).toBeNull();
       expect(s.turn).toBe(s.mao);
     }
@@ -135,7 +129,7 @@ describe('playing blind', () => {
     // 2c beats 5c, then 4h ties 4c → trick-1 winner (seat 1) takes it.
     const s = playAll(fresh(2), '5c', '2c', '4h', '4c');
     expect(s.winner).toBe(1);
-    expect(s.value).toBe(MAO_DE_FERRO_VALUE);
+    expect(s.value).toBe(1);
   });
 
   it('played cards are revealed on the table, since nobody chose them knowingly', () => {

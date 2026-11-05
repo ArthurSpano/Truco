@@ -2,14 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Card, CardId, GameMode, Rank, Seat, Suit, Team } from '../shared/types.js';
 import { makeCard } from './deck.js';
 import { dealHand, playCard, startHand, type HandState } from './hand.js';
-import {
-  MAO_DE_ONZE_RUN_VALUE,
-  MAO_DE_ONZE_SCORE,
-  MAO_DE_ONZE_VALUE,
-  decideMaoDeOnze,
-  handsVisibleTo,
-  maoDeOnzeTeam,
-} from './maoDeOnze.js';
+import { decideMaoDeOnze, handsVisibleTo, maoDeOnzeTeam } from './maoDeOnze.js';
 import { seedRng } from './rng.js';
 import { seatsOf } from './seating.js';
 import { callTruco } from './truco.js';
@@ -61,14 +54,6 @@ function playAll(state: HandState, ...ids: CardId[]): HandState {
   }
   return s;
 }
-
-describe('constants', () => {
-  it('a mão de onze is played at 11, worth 3, and running gives the opponents 1', () => {
-    expect(MAO_DE_ONZE_SCORE).toBe(11);
-    expect(MAO_DE_ONZE_VALUE).toBe(3);
-    expect(MAO_DE_ONZE_RUN_VALUE).toBe(1);
-  });
-});
 
 describe('maoDeOnzeTeam', () => {
   it('is the team at 11 when only one team is there', () => {
@@ -125,7 +110,7 @@ describe('decideMaoDeOnze', () => {
   it('playing makes the hand worth 3 and play starts with the mão', () => {
     const s = decide(fresh(2, 0), 0, true);
     expect(s.maoDeOnze).toEqual({ team: 0, decision: 'play' });
-    expect(s.value).toBe(MAO_DE_ONZE_VALUE);
+    expect(s.value).toBe(3);
     expect(s.turn).toBe(0);
     expect(s.winner).toBeNull();
     expect(playCard(s, 0, '3c').ok).toBe(true);
@@ -150,7 +135,7 @@ describe('decideMaoDeOnze', () => {
     const s = decide(fresh(2, 0), 0, false);
     expect(s.maoDeOnze).toEqual({ team: 0, decision: 'run' });
     expect(s.winner).toBe(1);
-    expect(s.value).toBe(MAO_DE_ONZE_RUN_VALUE);
+    expect(s.value).toBe(1);
     expect(s.ranBy).toBe(0);
     expect(s.turn).toBeNull();
     expect(playCard(s, 0, '3c')).toEqual({ ok: false, error: 'hand_over' });

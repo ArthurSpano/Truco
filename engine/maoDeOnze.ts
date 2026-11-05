@@ -1,4 +1,5 @@
 import type { MaoDeOnzeDecision, Seat, Team } from '../shared/types.js';
+import { RULES } from './config.js';
 import type { HandState } from './hand.js';
 import { assertSeat, seatsOfTeam, teamOf } from './seating.js';
 
@@ -14,16 +15,9 @@ import { assertSeat, seatsOfTeam, teamOf } from './seating.js';
  * No truco may be called during a mão de onze, by either team. In 4 and 6
  * player games any member of the team at 11 may decide; the first decision
  * counts. When both teams are at 11 the hand is a *mão de ferro* instead.
+ *
+ * The score (11) and both values are in `RULES` (see config.ts).
  */
-
-/** Score at which a team plays a mão de onze. */
-export const MAO_DE_ONZE_SCORE = 11;
-
-/** What a mão de onze is worth if the team at 11 decides to play. */
-export const MAO_DE_ONZE_VALUE = 3;
-
-/** What the opponents score if the team at 11 runs. */
-export const MAO_DE_ONZE_RUN_VALUE = 1;
 
 export type { MaoDeOnzeDecision };
 
@@ -39,8 +33,9 @@ export interface MaoDeOnze {
  */
 export function maoDeOnzeTeam(scores: readonly [number, number]): Team | null {
   const [a, b] = scores;
-  if (a === MAO_DE_ONZE_SCORE && b !== MAO_DE_ONZE_SCORE) return 0;
-  if (b === MAO_DE_ONZE_SCORE && a !== MAO_DE_ONZE_SCORE) return 1;
+  const onze = RULES.maoDeOnzeScore;
+  if (a === onze && b !== onze) return 0;
+  if (b === onze && a !== onze) return 1;
   return null;
 }
 
@@ -67,14 +62,14 @@ export function decideMaoDeOnze(state: HandState, seat: Seat, play: boolean): Ma
   if (play) {
     return {
       ok: true,
-      state: { ...state, value: MAO_DE_ONZE_VALUE, maoDeOnze: { ...onze, decision: 'play' } },
+      state: { ...state, value: RULES.maoDeOnzeValue, maoDeOnze: { ...onze, decision: 'play' } },
     };
   }
   return {
     ok: true,
     state: {
       ...state,
-      value: MAO_DE_ONZE_RUN_VALUE,
+      value: RULES.maoDeOnzeRunValue,
       turn: null,
       winner: onze.team === 0 ? 1 : 0,
       ranBy: onze.team,

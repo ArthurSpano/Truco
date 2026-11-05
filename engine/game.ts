@@ -9,7 +9,7 @@ import type {
 } from '../shared/types.js';
 import { manilhaRank } from './deck.js';
 import {
-  FACE_DOWN_FROM_TRICK,
+  faceDownAllowed,
   playBlind,
   playBlocked,
   playCard,
@@ -243,7 +243,7 @@ function actionsFor(state: GameState, seat: Seat): GameActions {
 
   return {
     play: canPlay && !hand.maoDeFerro,
-    playFaceDown: canPlay && !hand.maoDeFerro && hand.tricks.length + 1 >= FACE_DOWN_FROM_TRICK,
+    playFaceDown: canPlay && faceDownAllowed(hand),
     playBlind: canPlay && hand.maoDeFerro,
     callTruco: truco.ok ? pendingStake(truco.state) : null,
     respond: call !== null && call.team !== team ? { raise: nextStake(call.stake) } : null,

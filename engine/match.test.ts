@@ -4,7 +4,6 @@ import { makeCard } from './deck.js';
 import { playBlind, playCard, startHand, type HandOptions, type HandState } from './hand.js';
 import { decideMaoDeOnze } from './maoDeOnze.js';
 import {
-  WINNING_SCORE,
   addPoints,
   finishHand,
   handOptionsFor,
@@ -80,12 +79,6 @@ function playOut(hand: HandState): HandState {
 
 const finish = (m: MatchState): MatchState => ok<MatchState>(finishHand(m));
 const withHand = (m: MatchState, hand: HandState): MatchState => ({ ...m, hand });
-
-describe('constants', () => {
-  it('the match is won at 12 points', () => {
-    expect(WINNING_SCORE).toBe(12);
-  });
-});
 
 describe('matchWinner', () => {
   it('is null while both teams are below 12', () => {
@@ -292,9 +285,9 @@ describe('full matches', () => {
       expect(gained.every((g) => g >= 0)).toBe(true);
       previous = m.scores;
     }
-    expect(Math.max(...m.scores)).toBe(WINNING_SCORE);
-    expect(Math.min(...m.scores)).toBeLessThan(WINNING_SCORE);
-    expect(m.scores[m.winner]).toBe(WINNING_SCORE);
+    expect(Math.max(...m.scores)).toBe(12);
+    expect(Math.min(...m.scores)).toBeLessThan(12);
+    expect(m.scores[m.winner]).toBe(12);
     expect(finishHand(m)).toEqual({ ok: false, error: 'match_over' });
   });
 });

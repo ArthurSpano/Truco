@@ -1,4 +1,5 @@
 import type { GameMode, Team } from '../shared/types.js';
+import { RULES } from './config.js';
 import { dealHand, type HandOptions, type HandState } from './hand.js';
 import { isMaoDeFerro } from './maoDeFerro.js';
 import { maoDeOnzeTeam } from './maoDeOnze.js';
@@ -12,11 +13,9 @@ import { firstDealer, nextDealer } from './seating.js';
  * one, a mão de onze (one team at 11) or a mão de ferro (both at 11).
  *
  * Scores are capped at 12: a team at 10 winning a truco (3 points) ends the
- * match at 12, not 13, since nothing beyond 12 means anything.
+ * match at 12, not 13, since nothing beyond 12 means anything. The target
+ * score is `RULES.winningScore` (see config.ts).
  */
-
-/** Points a team needs to win the match. */
-export const WINNING_SCORE = 12;
 
 /** Match score, indexed by team. */
 export type Scores = readonly [number, number];
@@ -36,15 +35,15 @@ export interface MatchState {
 
 /** The team that has won given `scores`, or `null` if nobody has reached 12 yet. */
 export function matchWinner(scores: Scores): Team | null {
-  if (scores[0] >= WINNING_SCORE) return 0;
-  if (scores[1] >= WINNING_SCORE) return 1;
+  if (scores[0] >= RULES.winningScore) return 0;
+  if (scores[1] >= RULES.winningScore) return 1;
   return null;
 }
 
 /** Adds `points` to `team`'s score, capped at 12. */
 export function addPoints(scores: Scores, team: Team, points: number): Scores {
   if (!Number.isInteger(points) || points < 0) throw new Error(`Invalid points ${points}`);
-  const added = Math.min(scores[team] + points, WINNING_SCORE);
+  const added = Math.min(scores[team] + points, RULES.winningScore);
   return team === 0 ? [added, scores[1]] : [scores[0], added];
 }
 

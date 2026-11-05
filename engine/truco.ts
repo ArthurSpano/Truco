@@ -1,4 +1,5 @@
 import type { Seat, Team, TrucoAnswer } from '../shared/types.js';
+import { RULES } from './config.js';
 import type { HandState } from './hand.js';
 import { assertSeat, teamOf } from './seating.js';
 
@@ -23,15 +24,15 @@ import { assertSeat, teamOf } from './seating.js';
  * a mão de ferro (see maoDeFerro.ts).
  */
 
-/** What a hand is worth before anyone calls truco. */
-export const BASE_HAND_VALUE = 1;
-
-/** Values a hand can be raised to, in order: Truco, Seis, Nove, Doze. */
-export const TRUCO_LADDER: readonly number[] = [3, 6, 9, 12];
-
-/** The next value up the ladder from `value`, or `null` at the top (Doze). */
-export function nextStake(value: number): number | null {
-  return TRUCO_LADDER.find((stake) => stake > value) ?? null;
+/**
+ * The next value up the ladder from `value`, or `null` at the top (Doze).
+ * `ladder` defaults to `RULES.trucoLadder` (see config.ts).
+ */
+export function nextStake(
+  value: number,
+  ladder: readonly number[] = RULES.trucoLadder,
+): number | null {
+  return ladder.find((stake) => stake > value) ?? null;
 }
 
 /** A truco call (or raise) waiting for the other team's answer. */

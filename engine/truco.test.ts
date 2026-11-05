@@ -2,14 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Card, CardId, GameMode, Rank, Seat, Suit } from '../shared/types.js';
 import { makeCard } from './deck.js';
 import { playCard, startHand, type HandState } from './hand.js';
-import {
-  BASE_HAND_VALUE,
-  TRUCO_LADDER,
-  callTruco,
-  nextStake,
-  respondTruco,
-  type TrucoAnswer,
-} from './truco.js';
+import { callTruco, nextStake, respondTruco, type TrucoAnswer } from './truco.js';
 
 const SUIT_BY_CODE: Record<string, Suit> = { c: 'clubs', h: 'hearts', s: 'spades', d: 'diamonds' };
 
@@ -52,8 +45,6 @@ const play = (s: HandState, seat: Seat, id: CardId): HandState => ok(playCard(s,
 
 describe('the ladder', () => {
   it('goes 1 → Truco (3) → Seis (6) → Nove (9) → Doze (12) and stops', () => {
-    expect(BASE_HAND_VALUE).toBe(1);
-    expect(TRUCO_LADDER).toEqual([3, 6, 9, 12]);
     expect(nextStake(1)).toBe(3);
     expect(nextStake(3)).toBe(6);
     expect(nextStake(6)).toBe(9);

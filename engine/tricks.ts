@@ -1,4 +1,5 @@
 import type { Card, Seat, TableCard, Team, TrickWinner } from '../shared/types.js';
+import { RULES, type TieRules } from './config.js';
 import { compareCards } from './deck.js';
 import { teamOf } from './seating.js';
 
@@ -90,12 +91,20 @@ export function resolveTrick(plays: readonly TrickPlay[], vira: Card): TrickResu
  *
  * - Two trick wins take the hand.
  * - Trick 1 tied: the next trick won decides it; all three tied → the *mão*'s team.
- * - Trick 1 won, trick 2 tied → the trick-1 winner.
- * - 1-1 and trick 3 tied → the trick-1 winner.
+ * - Trick 1 won, trick 2 tied → the trick-1 winner (or, with
+ *   `firstWonThenTied: 'play_third'`, trick 3 decides and a tie there goes
+ *   to the trick-1 winner).
+ * - 1-1 and trick 3 tied → the trick-1 winner (or the *mão*'s team, with
+ *   `splitThenTied: 'mao'`).
  *
- * So a hand can end after 2 tricks (2-0, or a tie plus a win in either order).
+ * With the standard rules a hand can end after 2 tricks (2-0, or a tie plus
+ * a win in either order). `ties` defaults to `RULES.ties` (see config.ts).
  */
-export function handWinner(tricks: readonly TrickWinner[], maoTeam: Team): Team | null {
+export function handWinner(
+  tricks: readonly TrickWinner[],
+  maoTeam: Team,
+  ties: TieRules = RULES.ties,
+): Team | null {
   if (tricks.length > TRICKS_PER_HAND) {
     throw new Error(`A hand has at most ${TRICKS_PER_HAND} tricks, got ${tricks.length}`);
   }
@@ -109,9 +118,15 @@ export function handWinner(tricks: readonly TrickWinner[], maoTeam: Team): Team 
     return t3 ?? maoTeam;
   }
 
-  // Trick 1 was won: winning trick 2 too, or tying it, settles the hand.
-  if (t2 === null || t2 === t1) return t1;
-  // 1-1: trick 3 decides, and a tie there goes to the trick-1 winner.
+  // Trick 1 was won: winning trick 2 too settles the hand.
+  if (t2 === t1) return t1;
+  if (t2 === null) {
+    if (ties.firstWonThenTied === 'first_trick_winner') return t1;
+    if (t3 === undefined) return null;
+    return t3 ?? t1;
+  }
+  // 1-1: trick 3 decides.
   if (t3 === undefined) return null;
-  return t3 ?? t1;
+  if (t3 !== null) return t3;
+  return ties.splitThenTied === 'mao' ? maoTeam : t1;
 }

@@ -9,9 +9,9 @@ import {
   type TrickPlay,
   type TrickResult,
 } from './tricks.js';
-import { MAO_DE_FERRO_VALUE } from './maoDeFerro.js';
+import { RULES } from './config.js';
 import type { MaoDeOnze } from './maoDeOnze.js';
-import { BASE_HAND_VALUE, type TrucoCall } from './truco.js';
+import type { TrucoCall } from './truco.js';
 
 /**
  * One hand of Truco as a small pure state machine: deal, then each player
@@ -112,7 +112,7 @@ export function startHand(
     tricks: [],
     turn: mao,
     winner: null,
-    value: maoDeFerro ? MAO_DE_FERRO_VALUE : BASE_HAND_VALUE,
+    value: maoDeFerro ? RULES.maoDeFerroValue : RULES.baseHandValue,
     truco: null,
     raisedBy: null,
     ranBy: null,
@@ -166,11 +166,14 @@ export type HandError =
 
 export type PlayResult = { ok: true; state: HandState } | { ok: false; error: HandError };
 
-/** Face-down play (*encoberta*) is only allowed from this trick on (1-based). */
-export const FACE_DOWN_FROM_TRICK = 2;
+/** Whether face-down play (*encoberta*) is allowed in the trick in progress. */
+export function faceDownAllowed(state: HandState): boolean {
+  return !state.maoDeFerro && state.tricks.length + 1 >= RULES.faceDownFromTrick;
+}
 
 /**
- * `seat` plays `cardId`, face up or, from trick 2 on, face down. Rejects
+ * `seat` plays `cardId`, face up or, from trick 2 on (`RULES.faceDownFromTrick`),
+ * face down. Rejects
  * (without throwing) plays out of turn, after the hand is decided, while a
  * truco call awaits an answer or a mão de onze awaits its decision, of a
  * card the player does not hold, or face down in trick 1. In a mão de ferro
@@ -191,7 +194,7 @@ export function playCard(
 
   const card = (state.hands[seat] ?? []).find((c) => c.id === cardId);
   if (card === undefined) return { ok: false, error: 'card_not_in_hand' };
-  if (faceDown && state.tricks.length + 1 < FACE_DOWN_FROM_TRICK) {
+  if (faceDown && !faceDownAllowed(state)) {
     return { ok: false, error: 'face_down_not_allowed' };
   }
   return { ok: true, state: applyPlay(state, seat, card, faceDown) };
