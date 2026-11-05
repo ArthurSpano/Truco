@@ -60,7 +60,9 @@ describe('RoomRegistry sweep', () => {
     const b = room.addPlayer('Beto', 0);
     if (!a.ok || !b.ok) throw new Error('addPlayer failed');
     room.setConnected(a.value.id, false, 1_000);
-    reg.sweep(1_000 + LOBBY_GRACE_MS + 1_000);
+    const result = reg.sweep(1_000 + LOBBY_GRACE_MS + 1_000);
+    expect(result.changed).toEqual([room]);
+    expect(result.deleted).toEqual([]);
     expect(room.playerIds()).toEqual([b.value.id]);
     expect(reg.findByToken(a.value.token)).toBeNull();
   });
@@ -81,7 +83,7 @@ describe('RoomRegistry sweep', () => {
     const a = room.addPlayer('Ana', 0);
     if (!a.ok) throw new Error('addPlayer failed');
     room.setConnected(a.value.id, false, 0);
-    const deleted = reg.sweep(11 * 60_000);
+    const { deleted } = reg.sweep(11 * 60_000);
     expect(deleted).toEqual([room.code]);
     expect(reg.getRoom(room.code)).toBeUndefined();
     expect(reg.findByToken(a.value.token)).toBeNull();
@@ -92,7 +94,7 @@ describe('RoomRegistry sweep', () => {
     const room = reg.createRoom(2);
     room.addPlayer('Ana', 0);
     room.lastActivity = 0;
-    expect(reg.sweep(ROOM_IDLE_MS * 10)).toEqual([]);
+    expect(reg.sweep(ROOM_IDLE_MS * 10).deleted).toEqual([]);
     expect(reg.size).toBe(1);
   });
 
@@ -109,7 +111,7 @@ describe('RoomRegistry sweep', () => {
     expect(room.status).toBe('playing');
     room.setConnected(a.value.id, false, 0);
     room.setConnected(b.value.id, false, 0);
-    expect(reg.sweep(60_000)).toEqual([]);
+    expect(reg.sweep(60_000).deleted).toEqual([]);
     expect(reg.size).toBe(1);
   });
 });

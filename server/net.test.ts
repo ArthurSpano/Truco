@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import type { ClientMessage, ServerMessage } from '../shared/protocol.js';
+import { REPLACED_CLOSE_CODE, type ClientMessage, type ServerMessage } from '../shared/protocol.js';
 import type { GameView, Seat } from '../shared/types.js';
 import { createNet, type Connection, type Net, type Session } from './net.js';
-import { RoomRegistry } from './rooms.js';
+import { LOBBY_GRACE_MS, RoomRegistry } from './rooms.js';
 
 class FakeConn implements Connection {
   sent: ServerMessage[] = [];
   closed = false;
+  closeArgs: [number | undefined, string | undefined] | null = null;
   send(msg: ServerMessage): void {
     this.sent.push(msg);
   }
-  close(): void {
+  close(code?: number, reason?: string): void {
     this.closed = true;
+    this.closeArgs = [code, reason];
   }
   ofType<T extends ServerMessage['t']>(t: T): Extract<ServerMessage, { t: T }>[] {
     return this.sent.filter((m): m is Extract<ServerMessage, { t: T }> => m.t === t);
@@ -245,9 +247,39 @@ describe('net: game', () => {
     const second = connect();
     send(second, { t: 'rejoin', token });
     expect(a.conn.closed).toBe(true);
+    expect(a.conn.closeArgs).toEqual([REPLACED_CLOSE_CODE, 'replaced']);
     expect(second.conn.ofType('game_state')).toHaveLength(1);
     net.disconnect(a.session);
     expect(b.conn.last('room_state').room.players.every((p) => p.connected)).toBe(true);
+  });
+
+  it('ignores late messages from a disconnected session', () => {
+    const { net, send, clients } = lobbyOf(2);
+    const [a] = clients;
+    if (!a) throw new Error('x');
+    net.disconnect(a.session);
+    a.conn.clear();
+    send(a, { t: 'ready' });
+    expect(a.conn.last('error').code).toBe('not_in_room');
+  });
+
+  it('tick tells remaining lobby players about swept ones', () => {
+    let clock = 0;
+    const net = createNet(new RoomRegistry({ seed: () => 1 }), () => clock);
+    const mk = (): Client => {
+      const conn = new FakeConn();
+      return { conn, session: net.connect(conn) };
+    };
+    const a = mk();
+    const b = mk();
+    net.message(a.session, JSON.stringify({ t: 'create_room', mode: 2, name: 'Ana' }));
+    const code = a.conn.last('joined').code;
+    net.message(b.session, JSON.stringify({ t: 'join_room', code, name: 'Beto' }));
+    clock = 1_000;
+    net.disconnect(a.session);
+    b.conn.clear();
+    net.tick(1_000 + LOBBY_GRACE_MS + 1);
+    expect(b.conn.last('room_state').room.players.map((p) => p.name)).toEqual(['Beto']);
   });
 
   it('chat needs a seat and then broadcasts', () => {

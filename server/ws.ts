@@ -6,7 +6,7 @@ import {
   MAX_MESSAGE_BYTES,
   type ServerMessage,
 } from '../shared/protocol.js';
-import { createNet, type Session } from './net.js';
+import { createNet, type Net, type Session } from './net.js';
 import { RateLimiter, DEFAULT_BURST, DEFAULT_PER_SECOND } from './rateLimit.js';
 import { RoomRegistry } from './rooms.js';
 
@@ -17,6 +17,8 @@ export interface WsOptions {
   heartbeatMs?: number;
   sweepMs?: number;
   registry?: RoomRegistry;
+  /** Test seam: replaces the protocol handler built from `registry`. */
+  net?: Net;
   burst?: number;
   perSecond?: number;
 }
@@ -30,9 +32,20 @@ export function attachWebSocket(
   opts: WsOptions = {},
 ): { close(): Promise<void> } {
   const registry = opts.registry ?? new RoomRegistry();
-  const net = createNet(registry);
+  const net = opts.net ?? createNet(registry);
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
   const alive = new WeakMap<WebSocket, boolean>();
+
+  const guarded = (fn: () => void, session: Session | null): void => {
+    try {
+      fn();
+    } catch (err) {
+      // Name and message only: never the payload or any game state.
+      const e = err instanceof Error ? err : null;
+      console.error(`internal error: ${e ? `${e.name}: ${e.message}` : 'unknown'}`);
+      session?.conn.send({ t: 'error', code: 'internal', msg: 'Deu ruim na mesa. Tente de novo.' });
+    }
+  };
 
   const onUpgrade = (
     req: http.IncomingMessage,
@@ -41,6 +54,12 @@ export function attachWebSocket(
   ): void => {
     // No URL parsing: a malformed request target must never throw here.
     const path = (req.url ?? '').split('?')[0];
+    // Node removes its own socket 'error' listener before emitting 'upgrade'; without
+    // one, a client RST would be an unhandled ECONNRESET that kills the process.
+    const onErr = (): void => {
+      socket.destroy();
+    };
+    socket.on('error', onErr);
     if (path !== WS_PATH) {
       // Leave it to other listeners (Vite HMR); if none exists, don't leave it hanging.
       if (httpServer.listenerCount('upgrade') <= 1) {
@@ -48,7 +67,10 @@ export function attachWebSocket(
       }
       return;
     }
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      socket.off('error', onErr);
+      wss.emit('connection', ws, req);
+    });
   };
   httpServer.on('upgrade', onUpgrade);
 
@@ -64,8 +86,8 @@ export function attachWebSocket(
     };
     const session: Session = net.connect({
       send,
-      close: () => {
-        ws.close();
+      close: (code, reason) => {
+        ws.close(code, reason);
       },
     });
     let disconnected = false;
@@ -85,7 +107,9 @@ export function attachWebSocket(
         send({ t: 'error', code: 'bad_message', msg: 'Só texto, parceiro.' });
         return;
       }
-      net.message(session, rawToString(data));
+      guarded(() => {
+        net.message(session, rawToString(data));
+      }, session);
     });
     ws.on('close', disconnect);
     // ws closes the socket itself on protocol errors (e.g. 1009); let that flush.
@@ -103,7 +127,11 @@ export function attachWebSocket(
     }
   }, opts.heartbeatMs ?? HEARTBEAT_INTERVAL_MS);
 
-  const sweep = setInterval(() => registry.sweep(Date.now()), opts.sweepMs ?? DEFAULT_SWEEP_MS);
+  const sweep = setInterval(() => {
+    guarded(() => {
+      net.tick(Date.now());
+    }, null);
+  }, opts.sweepMs ?? DEFAULT_SWEEP_MS);
 
   return {
     close: () => {

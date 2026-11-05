@@ -7,6 +7,12 @@ export const MAX_NAME_LENGTH = 16;
 /** Largest accepted client message, in bytes. */
 export const MAX_MESSAGE_BYTES = 2048;
 /** Ping interval for dropping dead sockets. */
+/**
+ * WebSocket close code sent to a socket whose seat was taken over by another
+ * socket (rejoin). Clients must NOT auto-reconnect after this code.
+ */
+export const REPLACED_CLOSE_CODE = 4001;
+
 export const HEARTBEAT_INTERVAL_MS = 15_000;
 /** Room code letters and digits, without I/O/0/1, which are easy to misread on a phone. */
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -29,7 +35,8 @@ export type ErrorCode =
   | 'need_seat'
   | 'not_in_lobby'
   | 'not_playing'
-  | 'illegal_intent';
+  | 'illegal_intent'
+  | 'internal';
 
 /** Everything a client may send. The server validates each one. `ready` toggles. */
 export type ClientMessage =

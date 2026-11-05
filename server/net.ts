@@ -1,4 +1,9 @@
-import type { ClientMessage, ErrorCode, ServerMessage } from '../shared/protocol.js';
+import {
+  REPLACED_CLOSE_CODE,
+  type ClientMessage,
+  type ErrorCode,
+  type ServerMessage,
+} from '../shared/protocol.js';
 import type { GameIntent } from '../shared/types.js';
 import type { Room, RoomResult } from './room.js';
 import type { RoomRegistry } from './rooms.js';
@@ -7,7 +12,7 @@ import { parseClientMessage } from './validate.js';
 /** The transport the protocol handler talks to (a WebSocket in production). */
 export interface Connection {
   send(msg: ServerMessage): void;
-  close(): void;
+  close(code?: number, reason?: string): void;
 }
 
 export interface Session {
@@ -19,6 +24,8 @@ export interface Net {
   connect(conn: Connection): Session;
   message(session: Session, raw: string): void;
   disconnect(session: Session): void;
+  /** Periodic housekeeping: sweeps the registry and tells affected lobbies. */
+  tick(now: number): void;
 }
 
 type Binding = NonNullable<Session['binding']>;
@@ -140,7 +147,7 @@ export function createNet(registry: RoomRegistry, now: () => number = Date.now):
         const old = sessionsOf(room).get(playerId);
         if (old && old !== s) {
           old.binding = null;
-          old.conn.close();
+          old.conn.close(REPLACED_CLOSE_CODE, 'replaced');
         }
         bind(s, room, playerId);
         room.setConnected(playerId, true, now());
@@ -209,8 +216,12 @@ export function createNet(registry: RoomRegistry, now: () => number = Date.now):
       const b = session.binding;
       if (!b || sessionsOf(b.room).get(b.playerId) !== session) return;
       sessionsOf(b.room).delete(b.playerId);
+      session.binding = null;
       b.room.setConnected(b.playerId, false, now());
       broadcastRoom(b.room);
+    },
+    tick(at) {
+      for (const room of registry.sweep(at).changed) broadcastRoom(room);
     },
   };
 }

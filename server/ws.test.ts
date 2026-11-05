@@ -1,9 +1,15 @@
 import http from 'node:http';
 import nodeNet, { type AddressInfo } from 'node:net';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
-import { MAX_MESSAGE_BYTES, type ClientMessage, type ServerMessage } from '../shared/protocol.js';
+import {
+  MAX_MESSAGE_BYTES,
+  REPLACED_CLOSE_CODE,
+  type ClientMessage,
+  type ServerMessage,
+} from '../shared/protocol.js';
 import { RoomRegistry } from './rooms.js';
+import { createNet } from './net.js';
 import { attachWebSocket, type WsOptions } from './ws.js';
 
 interface TestClient {
@@ -158,6 +164,86 @@ describe('attachWebSocket', () => {
       if (req.url === '/other') socket.end('HTTP/1.1 418 Teapot\r\nConnection: close\r\n\r\n');
     });
     await expect(open('/other')).rejects.toThrow(/418/);
+  });
+
+  it('survives a client reset on an upgrade nobody handles', async () => {
+    await start();
+    const uncaught: Error[] = [];
+    const onUncaught = (e: Error): void => {
+      uncaught.push(e);
+    };
+    process.on('uncaughtException', onUncaught);
+    try {
+      const raw = nodeNet.connect(port, '127.0.0.1');
+      raw.on('error', () => {});
+      await new Promise<void>((r) =>
+        raw.once('connect', () => {
+          r();
+        }),
+      );
+      raw.write(
+        'GET /other HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+          'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n',
+      );
+      raw.resetAndDestroy();
+      await sleep(100);
+      const a = await open();
+      a.send({ t: 'create_room', mode: 2, name: 'A' });
+      await a.next('joined');
+      expect(uncaught).toEqual([]);
+    } finally {
+      process.off('uncaughtException', onUncaught);
+    }
+  });
+
+  it('turns a throwing handler into an internal error without dropping anyone', async () => {
+    const real = createNet(new RoomRegistry({ seed: () => 1 }));
+    const net = {
+      ...real,
+      message: (s: Parameters<typeof real.message>[0], raw: string) => {
+        if (raw.includes('explode')) throw new Error('invariant');
+        real.message(s, raw);
+      },
+    };
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await start({ net });
+    const a = await open();
+    const b = await open();
+    a.ws.send('explode');
+    expect((await a.next('error')).code).toBe('internal');
+    expect(a.ws.readyState).toBe(WebSocket.OPEN);
+    b.send({ t: 'create_room', mode: 2, name: 'B' });
+    await b.next('joined');
+    expect(spy.mock.calls.flat().join(' ')).not.toContain('explode');
+    spy.mockRestore();
+  });
+
+  it('keeps ticking when the sweep throws', async () => {
+    const real = createNet(new RoomRegistry({ seed: () => 1 }));
+    let ticks = 0;
+    const net = {
+      ...real,
+      tick: () => {
+        ticks++;
+        throw new Error('boom');
+      },
+    };
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await start({ net, sweepMs: 20 });
+    await sleep(100);
+    expect(ticks).toBeGreaterThan(1);
+    spy.mockRestore();
+  });
+
+  it('closes a replaced socket with 4001', async () => {
+    await start();
+    const a = await open();
+    a.send({ t: 'create_room', mode: 2, name: 'A' });
+    const { token } = await a.next('joined');
+    const a2 = await open();
+    a2.send({ t: 'rejoin', token });
+    await a2.next('joined');
+    expect(await a.closed).toBe(REPLACED_CLOSE_CODE);
   });
 
   it('terminates clients that stop answering pings', async () => {

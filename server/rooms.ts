@@ -49,19 +49,23 @@ export class RoomRegistry {
   }
 
   /** Drops stale lobby players, then idle rooms nobody is connected to. */
-  sweep(now: number): string[] {
+  sweep(now: number): { deleted: string[]; changed: Room[] } {
     const deleted: string[] = [];
+    const changed: Room[] = [];
     for (const [code, room] of this.rooms) {
       // Evicting a stale player is housekeeping, not activity: keep the idle clock.
       const lastActivity = room.lastActivity;
-      for (const id of room.staleLobbyPlayers(now, LOBBY_GRACE_MS)) room.removePlayer(id);
+      const stale = room.staleLobbyPlayers(now, LOBBY_GRACE_MS);
+      for (const id of stale) room.removePlayer(id);
       room.lastActivity = lastActivity;
       if (!room.hasConnectedPlayer() && now - room.lastActivity > ROOM_IDLE_MS) {
         this.rooms.delete(code);
         deleted.push(code);
+      } else if (stale.length > 0) {
+        changed.push(room);
       }
     }
-    return deleted;
+    return { deleted, changed };
   }
 
   private randomCode(): string {
