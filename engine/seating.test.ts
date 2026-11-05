@@ -133,7 +133,7 @@ describe('counter-clockwise turns', () => {
     for (const mode of GAME_MODES) {
       for (const leader of seatsOf(mode)) {
         const order = turnOrder(leader, mode);
-        expect([...order].sort()).toEqual(seatsOf(mode));
+        expect([...order].sort((a, b) => a - b)).toEqual(seatsOf(mode));
         order.forEach((seat, i) => {
           expect(teamOf(seat)).toBe((teamOf(leader) + i) % 2);
         });
@@ -204,6 +204,6 @@ describe('firstDealer', () => {
   it.each([2, 4, 6] as const)('%i players: any seat can deal first', (mode: GameMode) => {
     const seen = new Set<number>();
     for (let seed = 0; seed < 200; seed++) seen.add(firstDealer(mode, seedRng(seed))[0]);
-    expect([...seen].sort()).toEqual(seatsOf(mode));
+    expect([...seen].sort((a, b) => a - b)).toEqual(seatsOf(mode));
   });
 });
