@@ -32,15 +32,16 @@ On startup the server prints every LAN address it found, plus a QR code in the t
 
 Friends scan the QR code or type the URL. Set `PORT` to change the port (`PORT=8080 npm start`).
 
-| Script              | What it does                            |
-| ------------------- | --------------------------------------- |
-| `npm run dev`       | Dev server with watch + HMR (one port)  |
-| `npm run build`     | Production build into `dist/`           |
-| `npm start`         | Run the production build                |
-| `npm test`          | Vitest                                  |
-| `npm run typecheck` | `tsc` for the Node side and the client  |
-| `npm run lint`      | ESLint (type-aware, strict)             |
-| `npm run check`     | typecheck + lint + format check + tests |
+| Script              | What it does                                                 |
+| ------------------- | ------------------------------------------------------------ |
+| `npm run dev`       | Dev server with watch + HMR (one port)                       |
+| `npm run build`     | Production build into `dist/`                                |
+| `npm start`         | Run the production build                                     |
+| `npm test`          | Vitest                                                       |
+| `npm run simulate`  | Play many full 2/4/6 matches, check invariants (`-- --help`) |
+| `npm run typecheck` | `tsc` for the Node side and the client                       |
+| `npm run lint`      | ESLint (type-aware, strict)                                  |
+| `npm run check`     | typecheck + lint + format check + tests                      |
 
 ## Playing on a phone hotspot
 

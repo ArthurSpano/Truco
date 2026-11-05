@@ -21,7 +21,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['server/**', 'engine/**', 'shared/**', '*.config.*'],
+    files: ['server/**', 'engine/**', 'shared/**', 'scripts/**', '*.config.*'],
     languageOptions: { globals: globals.node },
   },
   {

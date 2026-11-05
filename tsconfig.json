@@ -1,5 +1,5 @@
 {
-  // Node side: server, engine, shared, tests and tool configs. Type-check only.
+  // Node side: server, engine, shared, dev scripts, tests and tool configs. Type-check only.
   // The client has its own config in client/tsconfig.json.
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
@@ -9,5 +9,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["server", "engine", "shared", "*.config.ts"]
+  "include": ["server", "engine", "shared", "scripts", "*.config.ts"]
 }

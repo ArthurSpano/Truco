@@ -5,7 +5,6 @@ import type {
   GameEvent,
   GameIntent,
   GameMode,
-  GameView,
   Rank,
   Seat,
   Suit,
@@ -13,9 +12,8 @@ import type {
 import { makeCard } from './deck.js';
 import { applyIntent, createGame, viewFor, type GameState, type IntentResult } from './game.js';
 import { startHand, type HandOptions } from './hand.js';
-import { handsVisibleTo } from './maoDeOnze.js';
 import type { Scores } from './match.js';
-import { nextInt, seedRng } from './rng.js';
+import { seedRng } from './rng.js';
 import { seatsOf } from './seating.js';
 
 const SUIT_BY_CODE: Record<string, Suit> = { c: 'clubs', h: 'hearts', s: 'spades', d: 'diamonds' };
@@ -502,72 +500,5 @@ describe('viewFor', () => {
   });
 });
 
-/** Every intent the view says is legal for its seat. */
-function legalIntents(view: GameView): GameIntent[] {
-  const { actions } = view;
-  const intents: GameIntent[] = [];
-  if (actions.decideMaoDeOnze) {
-    intents.push({ t: 'mao11_decision', play: true }, { t: 'mao11_decision', play: false });
-  }
-  if (actions.respond !== null) {
-    intents.push({ t: 'respond', answer: 'accept' }, { t: 'respond', answer: 'run' });
-    if (actions.respond.raise !== null) intents.push({ t: 'respond', answer: 'raise' });
-  }
-  if (actions.callTruco !== null) intents.push({ t: 'call_truco' });
-  const cards = view.players[view.seat]?.cards ?? [];
-  if (actions.play) for (const card of cards) intents.push(play(card.id));
-  if (actions.playFaceDown) for (const card of cards) intents.push(play(card.id, true));
-  if (actions.playBlind) {
-    const count = view.players[view.seat]?.cardCount ?? 0;
-    for (let slot = 0; slot < count; slot++) intents.push({ t: 'play_blind', slot });
-  }
-  return intents;
-}
-
-describe('random full matches driven only by views', () => {
-  it.each([2, 4, 6] as const)(
-    'plays %i-player matches to 12 using only advertised actions, never leaking cards',
-    (mode) => {
-      for (let seed = 1; seed <= 5; seed++) {
-        let state = createGame(mode, seed);
-        let rng = seedRng(seed * 1000);
-        let steps = 0;
-
-        while (state.winner === null) {
-          if (++steps > 2000) throw new Error('Match did not finish');
-          const views = seatsOf(mode).map((seat) => viewFor(state, seat));
-
-          // No view shows a hand its seat may not see.
-          for (const view of views) {
-            const allowed = new Set(handsVisibleTo(state.hand, view.seat));
-            const json = JSON.stringify(view);
-            state.hand.hands.forEach((hand, other) => {
-              if (allowed.has(other)) return;
-              for (const card of hand) expect(json).not.toContain(`"${card.id}"`);
-            });
-          }
-
-          const options = views.flatMap((view) =>
-            legalIntents(view).map((intent) => [view.seat, intent] as const),
-          );
-          expect(options.length).toBeGreaterThan(0);
-          const [pick, next] = nextInt(rng, options.length);
-          rng = next;
-          const [seat, intent] = options[pick] as (typeof options)[number];
-
-          const result = applyIntent(state, seat, intent);
-          if (!result.ok) throw new Error(`Advertised ${intent.t} rejected: ${result.error}`);
-          for (const event of result.events) {
-            if (event.t === 'card_played' && event.card.faceDown) {
-              expect(event.card).toEqual({ seat, faceDown: true });
-            }
-          }
-          state = result.state;
-        }
-
-        expect(Math.max(...state.scores)).toBe(12);
-        expect(state.scores[state.winner]).toBe(12);
-      }
-    },
-  );
-});
+// Full random matches in every mode, driven only by the views, are played by
+// the simulation harness: see simulate.test.ts.
