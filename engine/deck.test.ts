@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { Rank } from '../shared/types.js';
+import type { Rank, Suit } from '../shared/types.js';
 import {
   DECK_SIZE,
+  MANILHA_SUIT_ORDER,
   RANKS,
   SUITS,
   cardId,
+  compareCards,
   createDeck,
   isManilha,
   makeCard,
   manilhaRank,
+  manilhaSuitStrength,
   rankStrength,
 } from './deck.js';
 
@@ -111,5 +114,76 @@ describe('isManilha', () => {
     const vira = makeCard('3', 'diamonds');
     expect(isManilha(makeCard('3', 'clubs'), vira)).toBe(false);
     expect(isManilha(makeCard('4', 'clubs'), vira)).toBe(true);
+  });
+});
+
+describe('manilha suit order', () => {
+  it('goes pica-fumo ♦ < espadilha ♠ < copas ♥ < zap ♣', () => {
+    const scrambled: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
+    const sorted = scrambled.sort((a, b) => manilhaSuitStrength(a) - manilhaSuitStrength(b));
+    expect(sorted).toEqual(['diamonds', 'spades', 'hearts', 'clubs']);
+  });
+
+  it('is not the deck-building suit order', () => {
+    expect(MANILHA_SUIT_ORDER).not.toEqual(SUITS);
+  });
+
+  it.each(['4', '7', 'K', '3'] satisfies Rank[])(
+    'orders the four manilhas by suit when vira is %s',
+    (viraRank) => {
+      const vira = makeCard(viraRank, 'hearts');
+      const manilhas = createDeck().filter((c) => isManilha(c, vira));
+      const sorted = manilhas.sort((a, b) => compareCards(a, b, vira));
+      expect(sorted.map((c) => c.suit)).toEqual(['diamonds', 'spades', 'hearts', 'clubs']);
+    },
+  );
+});
+
+describe('compareCards', () => {
+  const vira = makeCard('7', 'hearts'); // manilha: Q
+
+  it('zap beats copas, copas beats espadilha, espadilha beats pica-fumo', () => {
+    const zap = makeCard('Q', 'clubs');
+    const copas = makeCard('Q', 'hearts');
+    const espadilha = makeCard('Q', 'spades');
+    const picaFumo = makeCard('Q', 'diamonds');
+    expect(compareCards(zap, copas, vira)).toBeGreaterThan(0);
+    expect(compareCards(copas, espadilha, vira)).toBeGreaterThan(0);
+    expect(compareCards(espadilha, picaFumo, vira)).toBeGreaterThan(0);
+    expect(compareCards(picaFumo, zap, vira)).toBeLessThan(0);
+  });
+
+  it('the weakest manilha beats the strongest normal card', () => {
+    const picaFumo = makeCard('Q', 'diamonds');
+    const threeOfClubs = makeCard('3', 'clubs');
+    expect(compareCards(picaFumo, threeOfClubs, vira)).toBeGreaterThan(0);
+    expect(compareCards(threeOfClubs, picaFumo, vira)).toBeLessThan(0);
+  });
+
+  it('a manilha of a normally weak rank beats a normally strong rank', () => {
+    const viraThree = makeCard('3', 'spades'); // manilha: 4
+    expect(
+      compareCards(makeCard('4', 'diamonds'), makeCard('3', 'clubs'), viraThree),
+    ).toBeGreaterThan(0);
+  });
+
+  it('compares normal cards by rank only', () => {
+    expect(compareCards(makeCard('3', 'diamonds'), makeCard('2', 'clubs'), vira)).toBeGreaterThan(
+      0,
+    );
+    expect(compareCards(makeCard('4', 'clubs'), makeCard('5', 'diamonds'), vira)).toBeLessThan(0);
+  });
+
+  it('ties normal cards of the same rank, whatever the suit (embuchada)', () => {
+    for (const a of SUITS) {
+      for (const b of SUITS) {
+        expect(compareCards(makeCard('A', a), makeCard('A', b), vira)).toBe(0);
+      }
+    }
+  });
+
+  it('a card ties only with itself among manilhas', () => {
+    const zap = makeCard('Q', 'clubs');
+    expect(compareCards(zap, zap, vira)).toBe(0);
   });
 });
