@@ -39,7 +39,8 @@ export function attachWebSocket(
     socket: import('node:stream').Duplex,
     head: Buffer,
   ): void => {
-    const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+    // No URL parsing: a malformed request target must never throw here.
+    const path = (req.url ?? '').split('?')[0];
     if (path !== WS_PATH) {
       // Leave it to other listeners (Vite HMR); if none exists, don't leave it hanging.
       if (httpServer.listenerCount('upgrade') <= 1) {
@@ -87,10 +88,8 @@ export function attachWebSocket(
       net.message(session, rawToString(data));
     });
     ws.on('close', disconnect);
-    ws.on('error', () => {
-      disconnect();
-      ws.terminate();
-    });
+    // ws closes the socket itself on protocol errors (e.g. 1009); let that flush.
+    ws.on('error', disconnect);
   });
 
   const heartbeat = setInterval(() => {

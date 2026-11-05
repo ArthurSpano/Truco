@@ -1,5 +1,5 @@
 import http from 'node:http';
-import type { AddressInfo } from 'node:net';
+import nodeNet, { type AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { MAX_MESSAGE_BYTES, type ClientMessage, type ServerMessage } from '../shared/protocol.js';
@@ -127,18 +127,37 @@ describe('attachWebSocket', () => {
     await start({ burst: 3, perSecond: 0.001 });
     const a = await open();
     for (let i = 0; i < 6; i++) a.send({ t: 'ready' });
-    expect((await a.next('error')).code).not.toBeUndefined();
     const codes: string[] = [];
-    await sleep(100);
-    for (let i = 0; i < 6; i++) a.send({ t: 'ready' });
-    await sleep(100);
-    // drain what remains
-    for (;;) {
-      const r = await Promise.race([a.next('error'), sleep(50).then(() => null)]);
-      if (!r) break;
-      codes.push(r.code);
-    }
+    for (let i = 0; i < 6; i++) codes.push((await a.next('error')).code);
     expect(codes).toContain('rate_limited');
+  });
+
+  it('survives a malformed upgrade request target', async () => {
+    await start();
+    const raw = nodeNet.connect(port, '127.0.0.1');
+    await new Promise<void>((r) =>
+      raw.once('connect', () => {
+        r();
+      }),
+    );
+    raw.on('error', () => {});
+    raw.write(
+      'GET http://[ HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+        'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n',
+    );
+    await sleep(100);
+    raw.destroy();
+    const a = await open();
+    a.send({ t: 'create_room', mode: 2, name: 'A' });
+    await a.next('joined');
+  });
+
+  it('leaves non-/ws upgrades to other listeners', async () => {
+    await start();
+    server.on('upgrade', (req, socket) => {
+      if (req.url === '/other') socket.end('HTTP/1.1 418 Teapot\r\nConnection: close\r\n\r\n');
+    });
+    await expect(open('/other')).rejects.toThrow(/418/);
   });
 
   it('terminates clients that stop answering pings', async () => {
