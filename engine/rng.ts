@@ -8,6 +8,9 @@
  *
  * Not cryptographically secure. Fine for dealing cards between friends; the
  * server picks the initial seed.
+ *
+ * The state is hidden information: anyone holding it can replay every future
+ * shuffle and see all hands. Player views must never include it.
  */
 
 /** Opaque-ish RNG state: an unsigned 32-bit integer. */
