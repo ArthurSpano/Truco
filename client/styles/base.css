@@ -142,3 +142,101 @@ h2 {
   margin: 0;
   color: #ffb4a8;
 }
+
+/* Home form */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  text-align: left;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field-label {
+  font-weight: 700;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 0.9rem;
+  border: 2px solid rgb(0 0 0 / 0.35);
+  border-radius: 10px;
+  background: var(--cream);
+  color: var(--ink);
+  /* 16px+ keeps iOS Safari from zooming on focus. */
+  font: inherit;
+  font-size: 1.125rem;
+}
+
+.input.code {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-weight: 800;
+}
+
+.row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.btn {
+  min-height: var(--tap);
+  padding: 0 1.1rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--green);
+  color: var(--cream);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 0.4);
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--red);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.4);
+}
+
+.segmented {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.seg {
+  flex: 1;
+  min-height: var(--tap);
+  padding: 0.3rem 0.4rem;
+  border: 2px solid rgb(0 0 0 / 0.35);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.3);
+  color: var(--cream);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.seg.on {
+  background: var(--amber);
+  border-color: var(--amber-glow);
+  color: var(--ink);
+}
