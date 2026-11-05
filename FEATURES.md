@@ -22,7 +22,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 - [x] Tricks, hand resolution and all tie scenarios
 - [x] Face-down play (encoberta) from trick 2
 - [x] Truco ladder: Truco → Seis → Nove → Doze (accept / run / raise, who may raise)
-- [ ] Mão de onze
+- [x] Mão de onze
 - [ ] Mão de ferro
 - [ ] Win at 12 points
 - [ ] `createGame`, `applyIntent`, `viewFor`
