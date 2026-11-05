@@ -1,4 +1,4 @@
-import type { Seat, Team } from '../shared/types.js';
+import type { Seat, Team, TrucoAnswer } from '../shared/types.js';
 import type { HandState } from './hand.js';
 import { assertSeat, teamOf } from './seating.js';
 
@@ -44,7 +44,7 @@ export interface TrucoCall {
   readonly stake: number;
 }
 
-export type TrucoAnswer = 'accept' | 'run' | 'raise';
+export type { TrucoAnswer };
 
 export type TrucoError =
   | 'hand_over'

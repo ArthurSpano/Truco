@@ -216,7 +216,7 @@ export function playBlind(state: HandState, seat: Seat, slot: number): PlayResul
 }
 
 /** Why `seat` may not play any card right now, or `null` if it may. */
-function playBlocked(state: HandState, seat: Seat): HandError | null {
+export function playBlocked(state: HandState, seat: Seat): HandError | null {
   if (state.winner !== null || state.turn === null) return 'hand_over';
   if (state.truco !== null) return 'truco_pending';
   if (state.maoDeOnze?.decision === 'pending') return 'mao_de_onze_pending';

@@ -1,4 +1,4 @@
-import type { Seat, Team } from '../shared/types.js';
+import type { MaoDeOnzeDecision, Seat, Team } from '../shared/types.js';
 import type { HandState } from './hand.js';
 import { assertSeat, seatsOfTeam, teamOf } from './seating.js';
 
@@ -25,7 +25,7 @@ export const MAO_DE_ONZE_VALUE = 3;
 /** What the opponents score if the team at 11 runs. */
 export const MAO_DE_ONZE_RUN_VALUE = 1;
 
-export type MaoDeOnzeDecision = 'pending' | 'play' | 'run';
+export type { MaoDeOnzeDecision };
 
 export interface MaoDeOnze {
   /** The team at 11, which decides whether to play the hand. */

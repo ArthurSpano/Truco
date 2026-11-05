@@ -1,4 +1,4 @@
-import type { Card, Seat, TableCard, Team } from '../shared/types.js';
+import type { Card, Seat, TableCard, Team, TrickWinner } from '../shared/types.js';
 import { compareCards } from './deck.js';
 import { teamOf } from './seating.js';
 
@@ -41,8 +41,7 @@ function comparePlays(a: TrickPlay, b: TrickPlay, vira: Card): number {
 /** Tricks per hand: a hand is best of 3. */
 export const TRICKS_PER_HAND = 3;
 
-/** The team that took a trick, or `null` when it was tied (*empate* / *embuchada*). */
-export type TrickWinner = Team | null;
+export type { TrickWinner };
 
 export interface TrickResult {
   winner: TrickWinner;
