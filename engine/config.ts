@@ -53,18 +53,25 @@ export interface RuleConfig {
   readonly maoDeFerroValue: number;
 }
 
-/** Truco Paulista as played by this game. */
-export const RULES: RuleConfig = {
+/**
+ * Truco Paulista as played by this game. Frozen (deeply) because every room
+ * shares it: `readonly` only stops typed code, and a stray runtime mutation
+ * would silently change the rules mid-match for everyone.
+ */
+export const RULES: RuleConfig = Object.freeze({
   winningScore: 12,
   baseHandValue: 1,
-  trucoLadder: [3, 6, 9, 12],
-  ties: { firstWonThenTied: 'first_trick_winner', splitThenTied: 'first_trick_winner' },
+  trucoLadder: Object.freeze([3, 6, 9, 12]),
+  ties: Object.freeze({
+    firstWonThenTied: 'first_trick_winner',
+    splitThenTied: 'first_trick_winner',
+  } as const),
   faceDownFromTrick: 2,
   maoDeOnzeScore: 11,
   maoDeOnzeValue: 3,
   maoDeOnzeRunValue: 1,
   maoDeFerroValue: 1,
-};
+});
 
 const isPositiveInt = (n: number): boolean => Number.isInteger(n) && n > 0;
 

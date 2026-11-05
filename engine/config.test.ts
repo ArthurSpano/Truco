@@ -23,6 +23,12 @@ describe('RULES (defaults)', () => {
     });
   });
 
+  it('is frozen all the way down, since every room shares it', () => {
+    expect(Object.isFrozen(RULES)).toBe(true);
+    expect(Object.isFrozen(RULES.trucoLadder)).toBe(true);
+    expect(Object.isFrozen(RULES.ties)).toBe(true);
+  });
+
   it('has no problems', () => {
     expect(ruleProblems(RULES)).toEqual([]);
   });
