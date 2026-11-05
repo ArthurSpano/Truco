@@ -240,6 +240,20 @@ describe('finishHand', () => {
       expect(over.winner).toBe(0);
     });
 
+    it('ends the match when the opponents run from a raise', () => {
+      // Team 1 at 7 raises to Doze and team 0 runs: team 1 scores the Nove, 7 → 12 (capped).
+      const m = matchAt(2, [4, 7]);
+      let hand = ok(callTruco(m.hand, 0)); // Truco
+      hand = ok(respondTruco(hand, 1, 'raise')); // Seis
+      hand = ok(respondTruco(hand, 0, 'raise')); // Nove
+      hand = ok(respondTruco(hand, 1, 'raise')); // Doze
+      hand = ok(respondTruco(hand, 0, 'run'));
+      expect(hand.value).toBe(9);
+      const over = finish(withHand(m, hand));
+      expect(over.scores).toEqual([4, 12]);
+      expect(over.winner).toBe(1);
+    });
+
     it('can be won by the opponents of the team at 11 when it plays the mão de onze', () => {
       // Team 1 at 11 plays; team 0 (at 9) wins the hand, worth 3: 9 → 12.
       const m = matchAt(2, [9, 11], { maoDeOnze: 1 });
