@@ -9,6 +9,7 @@ import {
   type TrickPlay,
   type TrickResult,
 } from './tricks.js';
+import { BASE_HAND_VALUE, type TrucoCall } from './truco.js';
 
 /**
  * One hand of Truco as a small pure state machine: deal, then each player
@@ -44,6 +45,14 @@ export interface HandState {
   readonly turn: Seat | null;
   /** Team that won the hand, or `null` while it is still being played. */
   readonly winner: Team | null;
+  /** Points the hand is worth: 1, or the last accepted step of the truco ladder. */
+  readonly value: number;
+  /** A truco call or raise waiting for an answer. Cards cannot be played meanwhile. */
+  readonly truco: TrucoCall | null;
+  /** Team that made the latest accepted raise: only the other team may raise next. */
+  readonly raisedBy: Team | null;
+  /** Team that ran from a truco call, ending the hand early; `null` otherwise. */
+  readonly ranBy: Team | null;
 }
 
 /**
@@ -82,6 +91,10 @@ export function startHand(
     tricks: [],
     turn: mao,
     winner: null,
+    value: BASE_HAND_VALUE,
+    truco: null,
+    raisedBy: null,
+    ranBy: null,
   };
 }
 
@@ -116,7 +129,7 @@ export function dealHand(
 }
 
 export type HandError =
-  'hand_over' | 'not_your_turn' | 'card_not_in_hand' | 'face_down_not_allowed';
+  'hand_over' | 'truco_pending' | 'not_your_turn' | 'card_not_in_hand' | 'face_down_not_allowed';
 
 export type PlayResult = { ok: true; state: HandState } | { ok: false; error: HandError };
 
@@ -125,8 +138,9 @@ export const FACE_DOWN_FROM_TRICK = 2;
 
 /**
  * `seat` plays `cardId`, face up or, from trick 2 on, face down. Rejects
- * (without throwing) plays out of turn, after the hand is decided, of a card
- * the player does not hold, or face down in trick 1. When the trick
+ * (without throwing) plays out of turn, after the hand is decided, while a
+ * truco call awaits an answer, of a card the player does not hold, or face
+ * down in trick 1. When the trick
  * completes it is resolved, and either the hand is decided or the trick's
  * leader starts the next one.
  */
@@ -137,6 +151,7 @@ export function playCard(
   faceDown = false,
 ): PlayResult {
   if (state.winner !== null || state.turn === null) return { ok: false, error: 'hand_over' };
+  if (state.truco !== null) return { ok: false, error: 'truco_pending' };
   if (seat !== state.turn) return { ok: false, error: 'not_your_turn' };
 
   const hand = state.hands[seat] ?? [];
