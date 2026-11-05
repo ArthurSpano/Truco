@@ -152,6 +152,55 @@ describe('GameSocket', () => {
     expect(statuses.at(-1)).toBe('closed');
   });
 
+  it('close() closes the socket and detaches handlers', () => {
+    const { gs } = setup('tok');
+    gs.connect();
+    const ws = last();
+    ws.open();
+    gs.close();
+    expect(ws.readyState).toBe(3);
+    expect(ws.onclose).toBeNull();
+    expect(ws.onmessage).toBeNull();
+  });
+
+  it('connect() twice leaves exactly one live socket', () => {
+    const { gs } = setup('tok');
+    gs.connect();
+    gs.connect();
+    const live = FakeWebSocket.instances.filter((w) => w.readyState !== 3);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    expect(live).toEqual([last()]);
+  });
+
+  it('connect() during a pending retry creates no extra socket', () => {
+    const { gs } = setup('tok', () => 100);
+    gs.connect();
+    last().drop();
+    gs.connect();
+    expect(FakeWebSocket.instances).toHaveLength(2);
+    vi.advanceTimersByTime(1000);
+    expect(FakeWebSocket.instances).toHaveLength(2);
+  });
+
+  it('default backoff doubles from 500ms and caps at 5s', () => {
+    const gs2 = new GameSocket({
+      url: 'ws://x',
+      tokens: memTokens(null),
+      WebSocketImpl: FakeWebSocket as unknown as typeof WebSocket,
+      onMessage: () => undefined,
+      onStatus: () => undefined,
+    });
+    gs2.connect();
+    for (const delay of [500, 1000, 2000, 4000, 5000, 5000]) {
+      const n = FakeWebSocket.instances.length;
+      last().drop();
+      vi.advanceTimersByTime(delay - 1);
+      expect(FakeWebSocket.instances).toHaveLength(n);
+      vi.advanceTimersByTime(1);
+      expect(FakeWebSocket.instances).toHaveLength(n + 1);
+    }
+  });
+
   it('close() cancels a pending retry', () => {
     const { gs } = setup('tok', () => 100);
     gs.connect();

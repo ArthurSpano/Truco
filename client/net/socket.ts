@@ -40,8 +40,11 @@ export class GameSocket {
 
   constructor(private readonly opts: SocketOptions) {}
 
+  /** Idempotent: drops any pending retry and existing socket, then opens one fresh socket. */
   connect(): void {
     this.stopped = false;
+    this.teardown();
+    this.attempt = 0;
     this.open('connecting');
   }
 
@@ -52,15 +55,21 @@ export class GameSocket {
 
   close(): void {
     this.stopped = true;
+    this.teardown();
+    this.opts.onStatus('closed');
+  }
+
+  private teardown(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     const ws = this.ws;
     this.ws = null;
     if (ws) {
+      ws.onopen = null;
+      ws.onmessage = null;
       ws.onclose = null;
       ws.close();
     }
-    this.opts.onStatus('closed');
   }
 
   private open(status: ConnStatus): void {
