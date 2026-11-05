@@ -27,7 +27,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 - [x] Win at 12 points
 - [x] `createGame`, `applyIntent`, `viewFor`
 - [x] Rule variants in `engine/config.ts`
-- [ ] Vitest coverage and a harness simulating full 2/4/6 player games
+- [x] Vitest coverage and a harness simulating full 2/4/6 player games
 
 ## 3. Networking
 

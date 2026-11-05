@@ -357,6 +357,168 @@ describe('multi-player hands', () => {
     expect(t3.winner).toBe(1);
   });
 
+  describe('tie rules with 4 and 6 players', () => {
+    // Vira 7 → manilha Q, which none of these hands hold. The last seat deals, so seat 0 is the mão.
+    const four = (...hands: CardId[][]): HandState =>
+      startHand(
+        4,
+        3,
+        hands.map((h) => hand(...h)),
+        VIRA,
+      );
+    const six = (...hands: CardId[][]): HandState =>
+      startHand(
+        6,
+        5,
+        hands.map((h) => hand(...h)),
+        VIRA,
+      );
+    const winners = (s: HandState): (0 | 1 | null)[] => s.tricks.map((t) => t.result.winner);
+
+    it('4 players: trick 1 and 2 tied → trick 3 decides', () => {
+      const start = four(
+        ['3c', 'Kc', '4c'],
+        ['3h', 'Kh', '5h'],
+        ['5d', 'Jd', '6d'],
+        ['6s', 'Js', '7s'],
+      );
+      const state = playAll(
+        start,
+        '3c',
+        '3h',
+        '5d',
+        '6s',
+        'Kc',
+        'Kh',
+        'Jd',
+        'Js',
+        '4c',
+        '5h',
+        '6d',
+        '7s',
+      );
+      expect(winners(state)).toEqual([null, null, 1]);
+      expect(state.winner).toBe(1);
+    });
+
+    it('4 players: all three tied → the mão’s team wins', () => {
+      const start = four(
+        ['3c', 'Kc', '5c'],
+        ['3h', 'Kh', '5h'],
+        ['5d', 'Jd', '4d'],
+        ['6s', 'Js', '4s'],
+      );
+      const state = playAll(
+        start,
+        '3c',
+        '3h',
+        '5d',
+        '6s',
+        'Kc',
+        'Kh',
+        'Jd',
+        'Js',
+        '5c',
+        '5h',
+        '4d',
+        '4s',
+      );
+      expect(winners(state)).toEqual([null, null, null]);
+      expect(state.winner).toBe(0);
+    });
+
+    it('4 players: trick 1 won, trick 2 tied → trick-1 winner, no third trick', () => {
+      const start = four(
+        ['3c', 'Kc', '4c'],
+        ['2h', 'Kh', '5h'],
+        ['5d', 'Jd', '6d'],
+        ['6s', 'Js', '7s'],
+      );
+      const state = playAll(start, '3c', '2h', '5d', '6s', 'Kc', 'Kh', 'Jd', 'Js');
+      expect(winners(state)).toEqual([0, null]);
+      expect(state.winner).toBe(0);
+    });
+
+    it('4 players: 1-1 and trick 3 tied → trick-1 winner', () => {
+      const start = four(
+        ['3c', '4c', 'Kc'],
+        ['2h', 'Ah', 'Kh'],
+        ['5d', '4d', '5h'],
+        ['6s', '5s', '4s'],
+      );
+      const state = playAll(
+        start,
+        '3c',
+        '2h',
+        '5d',
+        '6s',
+        '4c',
+        'Ah',
+        '4d',
+        '5s',
+        'Kh',
+        '5h',
+        '4s',
+        'Kc',
+      );
+      expect(winners(state)).toEqual([0, 1, null]);
+      expect(state.winner).toBe(0);
+    });
+
+    it('6 players: trick 1 and 2 tied → trick 3 decides', () => {
+      const start = six(
+        ['3c', 'Kc', '4c'],
+        ['3h', 'Kh', '4h'],
+        ['4s', '5s', '6s'],
+        ['4d', '5d', 'Ac'],
+        ['5c', '6c', '7h'],
+        ['5h', '6h', '7s'],
+      );
+      const state = playAll(
+        start,
+        ...(['3c', '3h', '4s', '4d', '5c', '5h', 'Kc', 'Kh', '5s', '5d', '6c', '6h'] as CardId[]),
+        ...(['4c', '4h', '6s', 'Ac', '7h', '7s'] as CardId[]),
+      );
+      expect(winners(state)).toEqual([null, null, 1]);
+      expect(state.winner).toBe(1);
+    });
+
+    it('6 players: trick 1 won, trick 2 tied → trick-1 winner, no third trick', () => {
+      const start = six(
+        ['3c', 'Kc', 'Ac'],
+        ['4h', 'Kh', '6s'],
+        ['4s', '5s', '6d'],
+        ['4d', '5d', '7c'],
+        ['5c', '6c', '7h'],
+        ['5h', '6h', '7s'],
+      );
+      const state = playAll(
+        start,
+        ...(['3c', '4h', '4s', '4d', '5c', '5h', 'Kc', 'Kh', '5s', '5d', '6c', '6h'] as CardId[]),
+      );
+      expect(winners(state)).toEqual([0, null]);
+      expect(state.winner).toBe(0);
+    });
+
+    it('6 players: 1-1 and trick 3 tied → trick-1 winner', () => {
+      const start = six(
+        ['3c', '4c', 'Kc'],
+        ['4h', 'Ah', 'Kh'],
+        ['4s', '5s', '6s'],
+        ['4d', '5d', '6d'],
+        ['5c', '6c', '7h'],
+        ['5h', '6h', '7s'],
+      );
+      const state = playAll(
+        start,
+        ...(['3c', '4h', '4s', '4d', '5c', '5h', '4c', 'Ah', '5s', '5d', '6c', '6h'] as CardId[]),
+        ...(['Kh', '6s', '6d', '7h', '7s', 'Kc'] as CardId[]),
+      );
+      expect(winners(state)).toEqual([0, 1, null]);
+      expect(state.winner).toBe(0);
+    });
+  });
+
   it.each(GAME_MODES)(
     '%i players: random deals always finish in 2 or 3 tricks',
     (mode: GameMode) => {
