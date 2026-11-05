@@ -19,7 +19,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 - [x] Manilha suit order (zap > copas > espadilha > pica-fumo)
 - [x] Seeded RNG for deterministic tests
 - [x] 2, 4 and 6 player seating, counter-clockwise turns, dealer rotation
-- [ ] Tricks, hand resolution and all tie scenarios
+- [x] Tricks, hand resolution and all tie scenarios
 - [ ] Face-down play (encoberta) from trick 2
 - [ ] Truco ladder: Truco → Seis → Nove → Doze (accept / run / raise, who may raise)
 - [ ] Mão de onze
