@@ -59,6 +59,19 @@ export function reduce(state: AppState, action: Action): AppState {
             chat: [...state.chat, { seat: msg.seat, phraseId: msg.phraseId, at: action.now }],
           };
         case 'error':
+          // A rejected rejoin means the old session is gone: drop any stale room.
+          if (msg.code === 'bad_token') {
+            return {
+              ...state,
+              room: null,
+              view: null,
+              code: null,
+              token: null,
+              events: [],
+              chat: [],
+              error: { code: msg.code, text: errorText(msg.code) },
+            };
+          }
           return { ...state, error: { code: msg.code, text: errorText(msg.code) } };
       }
     }

@@ -2,25 +2,17 @@ import type { ClientMessage } from '../../shared/protocol.js';
 import { MAX_NAME_LENGTH, ROOM_CODE_LENGTH } from '../../shared/protocol.js';
 import type { AppState } from '../state/reducer.js';
 import { canCreate, canJoin, cleanCode, cleanName, loadName, saveName } from './homeForm.js';
+import { el } from './dom.js';
 
 type Mode = 2 | 4 | 6;
 const MODES: Mode[] = [2, 4, 6];
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
 
 export interface HomeView {
   element: HTMLElement;
   /** Patches error text, connection hint and button states without touching typed input. */
   update(state: AppState): void;
+  /** Empties the room code field (e.g. after a dead code was rejected). */
+  clearCode(): void;
 }
 
 /** Home screen: pick a name, then create a table or join one by code. */
@@ -132,17 +124,18 @@ export function createHome(initial: AppState, send: (m: ClientMessage) => void):
   joinBtn.addEventListener('click', join);
   sync();
 
-  const connEl = el('p', 'muted small', 'Conectando ao servidor...');
-
   function update(next: AppState): void {
     state = next;
     errorEl.textContent = state.error?.text ?? '';
     errorEl.hidden = !state.error;
-    connEl.hidden = state.conn === 'open';
     sync();
   }
 
-  root.append(nameLabel, modeGroup, createBtn, divider, joinRow, errorEl, connEl);
+  root.append(nameLabel, modeGroup, createBtn, divider, joinRow, errorEl);
   update(state);
-  return { element: root, update };
+  function clearCode(): void {
+    codeInput.value = '';
+    sync();
+  }
+  return { element: root, update, clearCode };
 }

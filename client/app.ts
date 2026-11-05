@@ -7,6 +7,7 @@ import type { Action, AppState } from './state/reducer.js';
 import { createHome } from './ui/home.js';
 import type { HomeView } from './ui/home.js';
 import { renderLobby } from './ui/lobby.js';
+import { el } from './ui/dom.js';
 
 type Screen = 'home' | 'lobby' | 'table' | 'replaced';
 
@@ -16,17 +17,6 @@ function screenOf(state: AppState, replaced: boolean): Screen {
   return state.room.status === 'lobby' ? 'lobby' : 'table';
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
 const REPLACED_TEXT = 'Esta sala foi aberta em outra aba/aparelho. Recarregue para voltar.';
 
 /** Wires socket, state store and screens together. */
@@ -34,6 +24,8 @@ export function startApp(root: HTMLElement): void {
   let state = initialState();
   let info: ServerInfo | null = null;
   let replaced = false;
+  let infoFailed = false;
+  let urlCode: string | null = null;
   let screen: Screen | null = null;
   let home: HomeView | null = null;
 
@@ -51,12 +43,15 @@ export function startApp(root: HTMLElement): void {
     url: `${proto}://${location.host}/ws`,
     tokens: localTokenStore(),
     onMessage: (msg) => {
-      dispatch({ kind: 'server', msg, now: Date.now() });
-      // A rejected rejoin means the old session is gone: drop any stale room.
-      if (msg.t === 'error' && msg.code === 'bad_token') {
-        state = { ...state, room: null, view: null, code: null, token: null };
-        render();
+      const dead = msg.t === 'error' && msg.code === 'bad_token';
+      // The code in the URL/field points at a room that no longer exists; strip it
+      // before rendering so a rebuilt home screen does not prefill it.
+      if (dead) {
+        urlCode = '';
+        syncUrl(null);
       }
+      dispatch({ kind: 'server', msg, now: Date.now() });
+      if (dead) home?.clearCode();
     },
     onStatus: (status) => {
       dispatch({ kind: 'conn', status });
@@ -81,8 +76,7 @@ export function startApp(root: HTMLElement): void {
   function render(): void {
     updateBanner();
     const next = screenOf(state, replaced);
-    const code = state.room?.code;
-    if (code) history.replaceState(null, '', `?sala=${code}`);
+    syncUrl(state.room?.code ?? null);
     if (next === 'replaced') {
       if (screen !== 'replaced') {
         home = null;
@@ -99,7 +93,7 @@ export function startApp(root: HTMLElement): void {
       }
     } else if (next === 'lobby') {
       home = null;
-      main.replaceChildren(renderLobby(state, info, send));
+      main.replaceChildren(renderLobby(state, info, send, infoFailed));
     } else if (screen !== 'table') {
       home = null;
       const box = el('section', 'panel');
@@ -109,11 +103,22 @@ export function startApp(root: HTMLElement): void {
     screen = next;
   }
 
+  /** Keeps ?sala= in step with the room; only touches history when the code changes. */
+  function syncUrl(code: string | null): void {
+    if (code === urlCode) return;
+    urlCode = code;
+    try {
+      history.replaceState(null, '', code ? `?sala=${code}` : location.pathname);
+    } catch {
+      // Browsers may throttle history updates; the URL is only a convenience.
+    }
+  }
+
   function updateBanner(): void {
     if (replaced) {
       banner.hidden = true;
     } else if (state.conn !== 'open') {
-      banner.textContent = 'Reconectando…';
+      banner.textContent = state.conn === 'connecting' ? 'Conectando…' : 'Reconectando…';
       banner.hidden = false;
     } else {
       banner.hidden = true;
@@ -126,7 +131,11 @@ export function startApp(root: HTMLElement): void {
     .then((res) => (res.ok ? (res.json() as Promise<ServerInfo>) : null))
     .then((data) => {
       info = data;
+      infoFailed = data === null;
       if (screen === 'lobby') render();
     })
-    .catch(() => undefined);
+    .catch(() => {
+      infoFailed = true;
+      if (screen === 'lobby') render();
+    });
 }

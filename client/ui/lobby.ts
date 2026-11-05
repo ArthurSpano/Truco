@@ -3,17 +3,7 @@ import type { ServerInfo } from '../../shared/types.js';
 import type { AppState } from '../state/reducer.js';
 import { renderShareCard } from './share.js';
 import { canReady, seatSlots, statusLine, unseated } from './seatSlots.js';
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
+import { el } from './dom.js';
 
 const TEAM_NAMES = ['Time A', 'Time B'] as const;
 
@@ -22,6 +12,7 @@ export function renderLobby(
   state: AppState,
   info: ServerInfo | null,
   send: (m: ClientMessage) => void,
+  infoFailed = false,
 ): HTMLElement {
   const room = state.room;
   const root = el('section', 'panel lobby');
@@ -32,7 +23,12 @@ export function renderLobby(
   head.append(el('p', 'room-code', room.code));
   root.append(head);
 
-  if (info) root.append(renderShareCard(info));
+  if (info) root.append(renderShareCard(info, room.code));
+  else if (infoFailed) {
+    root.append(
+      el('p', 'muted small', 'Não consegui obter o endereço da rede. Passe o código da sala.'),
+    );
+  }
 
   const list = el('ul', 'seats');
   for (const slot of seatSlots(room)) {
@@ -51,10 +47,16 @@ export function renderLobby(
       btn.append(el('span', 'seat-note', 'pronto'));
     }
     // Server rejects taken seats; disable them so the tap target is not misleading.
-    btn.disabled = slot.player !== null && !slot.mine;
-    btn.setAttribute('aria-label', `${TEAM_NAMES[slot.team]}, cadeira ${slot.seat + 1}`);
+    // Also inert while offline and for your own seat (nothing to do there).
+    btn.disabled = state.conn !== 'open' || slot.player !== null;
+    const parts = [`${TEAM_NAMES[slot.team]}, cadeira ${slot.seat + 1}`];
+    parts.push(slot.player ? slot.player.name : 'vaga livre');
+    if (slot.mine) parts.push('você');
+    if (slot.player && !slot.player.connected) parts.push('desconectado');
+    else if (slot.player?.ready) parts.push('pronto');
+    btn.setAttribute('aria-label', parts.join(', '));
     btn.addEventListener('click', () => {
-      if (!slot.mine) send({ t: 'pick_seat', seat: slot.seat });
+      send({ t: 'pick_seat', seat: slot.seat });
     });
     li.append(btn);
     list.append(li);

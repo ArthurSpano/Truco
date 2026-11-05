@@ -58,6 +58,22 @@ describe('reduce', () => {
   });
 });
 
+describe('bad_token', () => {
+  it('drops the stale room and keeps the error', () => {
+    let s = server(initialState(), { t: 'joined', token: 'tok', code: 'BAR7' });
+    s = server(s, { t: 'room_state', room });
+    s = server(s, { t: 'game_state', view });
+    s = reduce(s, { kind: 'conn', status: 'open' });
+    s = server(s, { t: 'error', code: 'bad_token', msg: 'x' });
+    expect(s.room).toBeNull();
+    expect(s.view).toBeNull();
+    expect(s.code).toBeNull();
+    expect(s.token).toBeNull();
+    expect(s.conn).toBe('open');
+    expect(s.error?.code).toBe('bad_token');
+  });
+});
+
 describe('errorText', () => {
   const codes: ErrorCode[] = [
     'bad_message',
