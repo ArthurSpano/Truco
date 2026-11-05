@@ -4,8 +4,17 @@ const NAME_KEY = 'truco.name';
 
 /** Upper-case, keep only room-code alphabet characters, cap at the code length. */
 export function cleanCode(input: string): string {
+  let source = input;
+  const m = /[?&#](?:sala|code)=([^&#\s]*)/i.exec(input);
+  if (m?.[1] !== undefined) {
+    try {
+      source = decodeURIComponent(m[1]);
+    } catch {
+      source = m[1];
+    }
+  }
   let out = '';
-  for (const ch of input.toUpperCase()) {
+  for (const ch of source.toUpperCase()) {
     if (ROOM_CODE_ALPHABET.includes(ch)) out += ch;
     if (out.length === ROOM_CODE_LENGTH) break;
   }

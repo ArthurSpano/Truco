@@ -6,7 +6,14 @@ describe('cleanCode', () => {
     expect(cleanCode(' bar7 ')).toBe('BAR7');
   });
   it('drops invalid characters and truncates to 4', () => {
-    expect(cleanCode('http://x/?sala=ab-cd9')).toBe('HTTP');
+    expect(cleanCode('http://x/?sala=ab-cd9')).toBe('ABCD');
+  });
+  it('extracts the code from a pasted URL', () => {
+    expect(cleanCode('http://192.168.1.5:3000/?sala=BAR7')).toBe('BAR7');
+    expect(cleanCode('http://192.168.1.5:3000/?code=bar7')).toBe('BAR7');
+    expect(cleanCode('http://192.168.1.5:3000/#sala=bar7')).toBe('BAR7');
+    expect(cleanCode('http://x/?a=1&sala=bar7&b=2')).toBe('BAR7');
+    expect(cleanCode('?sala=%zz')).toBe('ZZ');
     expect(cleanCode('ab-cd9')).toBe('ABCD');
     expect(cleanCode('a0b1c')).toBe('ABC');
   });
