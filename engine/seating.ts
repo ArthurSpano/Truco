@@ -1,4 +1,5 @@
 import type { GameMode, Seat, Team } from '../shared/types.js';
+import { nextInt, type RngState } from './rng.js';
 
 /**
  * Seating, teams and turn order.
@@ -71,4 +72,12 @@ export function maoSeat(dealer: Seat, mode: GameMode): Seat {
 /** The deal passes counter-clockwise: this hand's mão deals the next one. */
 export function nextDealer(dealer: Seat, mode: GameMode): Seat {
   return nextSeat(dealer, mode);
+}
+
+/**
+ * Draws the dealer of a match's first hand (any seat, uniformly). After
+ * that, `nextDealer` rotates the deal each hand.
+ */
+export function firstDealer(mode: GameMode, rng: RngState): [dealer: Seat, next: RngState] {
+  return nextInt(rng, mode);
 }

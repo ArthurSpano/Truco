@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GameMode } from '../shared/types.js';
+import { seedRng } from './rng.js';
 import {
   GAME_MODES,
   assertSeat,
+  firstDealer,
   isGameMode,
   maoSeat,
   nextDealer,
@@ -178,5 +180,30 @@ describe('dealer and mão', () => {
   it('validates the seat', () => {
     expect(() => maoSeat(6, 6)).toThrow(/seat/i);
     expect(() => nextDealer(4, 4)).toThrow(/seat/i);
+  });
+});
+
+describe('firstDealer', () => {
+  it.each([2, 4, 6] as const)('%i players: picks a valid seat', (mode: GameMode) => {
+    for (let seed = 0; seed < 50; seed++) {
+      const [dealer] = firstDealer(mode, seedRng(seed));
+      expect(seatsOf(mode)).toContain(dealer);
+    }
+  });
+
+  it('is deterministic for a given RNG state', () => {
+    expect(firstDealer(6, seedRng(7))).toEqual(firstDealer(6, seedRng(7)));
+  });
+
+  it('advances the RNG, so the shuffle that follows does not reuse the state', () => {
+    const rng = seedRng(7);
+    const [, next] = firstDealer(4, rng);
+    expect(next).not.toBe(rng);
+  });
+
+  it.each([2, 4, 6] as const)('%i players: any seat can deal first', (mode: GameMode) => {
+    const seen = new Set<number>();
+    for (let seed = 0; seed < 200; seed++) seen.add(firstDealer(mode, seedRng(seed))[0]);
+    expect([...seen].sort()).toEqual(seatsOf(mode));
   });
 });
