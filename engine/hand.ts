@@ -33,9 +33,12 @@ export interface HandState {
   readonly vira: Card;
   /** Cards still held, indexed by seat. Hidden information: never send other seats' hands. */
   readonly hands: readonly (readonly Card[])[];
-  /** Cards played so far to the trick in progress, in playing order. */
+  /**
+   * Cards played so far to the trick in progress, in playing order.
+   * Hidden information: face-down plays keep their real card; show them via `tableCard`.
+   */
   readonly trick: readonly TrickPlay[];
-  /** Finished tricks, oldest first. */
+  /** Finished tricks, oldest first. Same hidden-information caveat as `trick`. */
   readonly tricks: readonly CompletedTrick[];
   /** Seat expected to play next, or `null` once the hand is decided. */
   readonly turn: Seat | null;
