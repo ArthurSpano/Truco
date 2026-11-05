@@ -148,6 +148,10 @@ export class Room {
     return this.members.map((m) => m.id);
   }
 
+  hasConnectedPlayer(): boolean {
+    return this.members.some((m) => m.connected);
+  }
+
   /** Lobby players that have been disconnected for longer than `graceMs`. */
   staleLobbyPlayers(now: number, graceMs: number): string[] {
     if (this.state !== 'lobby') return [];

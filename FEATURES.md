@@ -32,7 +32,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 ## 3. Networking
 
 - [x] WebSocket JSON protocol with typed messages in `shared/protocol.ts`
-- [ ] Rooms with 4-letter codes, host picks mode (2/4/6)
+- [x] Rooms with 4-letter codes, host picks mode (2/4/6)
 - [x] Seat picking, teams by seat parity
 - [ ] Server-authoritative state, personalized snapshots (no hidden-card leaks)
 - [ ] Message validation and per-socket rate limit
