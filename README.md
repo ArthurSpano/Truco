@@ -71,7 +71,8 @@ Decisions so far:
 - **Listen on `0.0.0.0`.** Binding to `localhost` would make the server reachable only from the host computer.
 - **LAN address discovery.** `server/lan.ts` reads `os.networkInterfaces()`, keeps non-internal IPv4 addresses, drops link-local `169.254.x.x`, and ranks them: physical interfaces before virtual ones (Docker, VPN, VM bridges), then `192.168.x` > `10.x` > `172.16–31.x`. It is a pure function with unit tests.
 - **Interfaces are read per request.** If the host joins a hotspot after starting the server, `/api/info` and the QR code pick up the new address.
-- **Enforced boundaries.** ESLint forbids `engine/` and `shared/` from importing `server/` or `client/`, and the client from importing `engine/` or `server/`. The client can only render server snapshots.
+- **Enforced boundaries.** ESLint forbids `engine/` from importing `server/` or `client/`, `shared/` from importing anything but itself, and the client from importing `engine/` or `server/`. The client can only render server snapshots.
+- **Caching.** Vite's fingerprinted `assets/` are cached forever; `index.html` is revalidated, so phones get a new build on reload. Unknown app routes fall back to `index.html`, but missing files 404 (a stale bundle never gets HTML in place of JavaScript).
 
 ### HTTP API
 

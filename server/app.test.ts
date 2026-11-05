@@ -22,8 +22,11 @@ async function start(addresses: LanAddress[]): Promise<string> {
 }
 
 afterEach(async () => {
-  await new Promise((resolve) => server?.close(resolve));
+  const s = server;
   server = undefined;
+  // Resolve right away when a test never started a server; otherwise the
+  // promise would never settle and the hook would hang until it times out.
+  if (s) await new Promise((resolve) => s.close(resolve));
 });
 
 describe('GET /api/info', () => {

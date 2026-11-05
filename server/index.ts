@@ -1,11 +1,10 @@
 import http from 'node:http';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import express from 'express';
 import QRCode from 'qrcode';
 import { DEFAULT_PORT, type LanAddress } from '../shared/types.js';
 import { createApp } from './app.js';
 import { lanAddresses } from './lan.js';
+import { serveBuiltClient } from './static.js';
 
 /** Listen on every interface so phones on the same Wi-Fi/hotspot can connect. */
 const HOST = '0.0.0.0';
@@ -32,20 +31,7 @@ if (isDev) {
   app.use(vite.middlewares);
   closeVite = () => vite.close();
 } else {
-  app.use(
-    express.static(clientDir, {
-      setHeaders(res, filePath) {
-        // Vite fingerprints everything in assets/, so it can be cached forever.
-        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-      },
-    }),
-  );
-  // Single-page app: unknown GET routes fall back to index.html.
-  app.get('/{*path}', (_req, res) => {
-    res.sendFile(path.join(clientDir, 'index.html'));
-  });
+  serveBuiltClient(app, clientDir);
 }
 
 httpServer.on('error', (err: NodeJS.ErrnoException) => {
@@ -58,7 +44,11 @@ httpServer.on('error', (err: NodeJS.ErrnoException) => {
 });
 
 httpServer.listen(port, HOST, () => {
-  void printBanner(lanAddresses(port));
+  // The banner is cosmetic: a failure here (e.g. QR rendering) must not
+  // become an unhandled rejection that kills a server that is already up.
+  printBanner(lanAddresses(port)).catch((err: unknown) => {
+    console.error('Não consegui imprimir o banner:', err);
+  });
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {

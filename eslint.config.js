@@ -30,7 +30,7 @@ export default tseslint.config(
   },
   // Architecture boundaries (see CLAUDE.md §6).
   {
-    files: ['engine/**', 'shared/**'],
+    files: ['engine/**'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -38,7 +38,25 @@ export default tseslint.config(
           patterns: [
             {
               regex: '(^|/)(server|client)(/|$)',
-              message: 'engine/ and shared/ must not import from server/ or client/.',
+              message: 'engine/ must not import from server/ or client/.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The client imports shared/, so shared/ importing engine/ would pull
+    // game logic into the client bundle.
+    files: ['shared/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '(^|/)(engine|server|client)(/|$)',
+              message: 'shared/ must not import from engine/, server/ or client/.',
             },
           ],
         },
