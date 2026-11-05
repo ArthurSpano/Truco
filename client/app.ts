@@ -35,23 +35,16 @@ export function startApp(root: HTMLElement): void {
   const banner = el('p', 'banner');
   banner.setAttribute('role', 'status');
   banner.hidden = true;
-  const main = el('main', 'screen');
+  const main = el('div', 'screen');
   root.replaceChildren(header, banner, main);
 
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const tokens = localTokenStore();
   const socket = new GameSocket({
     url: `${proto}://${location.host}/ws`,
-    tokens: localTokenStore(),
+    tokens,
     onMessage: (msg) => {
-      const dead = msg.t === 'error' && msg.code === 'bad_token';
-      // The code in the URL/field points at a room that no longer exists; strip it
-      // before rendering so a rebuilt home screen does not prefill it.
-      if (dead) {
-        urlCode = '';
-        syncUrl(null);
-      }
       dispatch({ kind: 'server', msg, now: Date.now() });
-      if (dead) home?.clearCode();
     },
     onStatus: (status) => {
       dispatch({ kind: 'conn', status });
@@ -68,6 +61,18 @@ export function startApp(root: HTMLElement): void {
     socket.send(m);
   };
 
+  /**
+   * Leaves the current room (client-only: there is no leave message). Forgets the token,
+   * resets state, strips ?sala= and reconnects so the server sees a fresh session; it frees
+   * the abandoned lobby seat after its 30s disconnect grace.
+   */
+  function leave(): void {
+    tokens.clear();
+    syncUrl(null); // before the reset so the rebuilt home screen does not prefill the old code
+    dispatch({ kind: 'reset' });
+    socket.connect();
+  }
+
   function dispatch(action: Action): void {
     state = reduce(state, action);
     render();
@@ -76,7 +81,8 @@ export function startApp(root: HTMLElement): void {
   function render(): void {
     updateBanner();
     const next = screenOf(state, replaced);
-    syncUrl(state.room?.code ?? null);
+    // Only follow a live room; a dropped room (bad_token) keeps the URL so an invite survives.
+    if (state.room) syncUrl(state.room.code);
     if (next === 'replaced') {
       if (screen !== 'replaced') {
         home = null;
@@ -93,7 +99,7 @@ export function startApp(root: HTMLElement): void {
       }
     } else if (next === 'lobby') {
       home = null;
-      main.replaceChildren(renderLobby(state, info, send, infoFailed));
+      main.replaceChildren(renderLobby(state, info, send, infoFailed, leave));
     } else if (screen !== 'table') {
       home = null;
       const box = el('section', 'panel');

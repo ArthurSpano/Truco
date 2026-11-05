@@ -11,6 +11,8 @@ export interface AppState {
   room: RoomState | null;
   view: GameView | null;
   events: GameEvent[];
+  /** True once a game_state closed the current event burst; the next event starts a new list. */
+  eventsStale: boolean;
   chat: { seat: number; phraseId: PhraseId; at: number }[];
   error: { code: ErrorCode; text: string } | null;
 }
@@ -29,6 +31,7 @@ export function initialState(): AppState {
     room: null,
     view: null,
     events: [],
+    eventsStale: false,
     chat: [],
     error: null,
   };
@@ -50,9 +53,14 @@ export function reduce(state: AppState, action: Action): AppState {
         case 'room_state':
           return { ...state, room: msg.room };
         case 'game_state':
-          return { ...state, view: msg.view, events: [] };
+          // The server sends a burst's events BEFORE its game_state, so keep them for consumers.
+          return { ...state, view: msg.view, eventsStale: true };
         case 'event':
-          return { ...state, events: [...state.events, msg.event] };
+          return {
+            ...state,
+            events: state.eventsStale ? [msg.event] : [...state.events, msg.event],
+            eventsStale: false,
+          };
         case 'chat':
           return {
             ...state,
@@ -68,6 +76,7 @@ export function reduce(state: AppState, action: Action): AppState {
               code: null,
               token: null,
               events: [],
+              eventsStale: false,
               chat: [],
               error: { code: msg.code, text: errorText(msg.code) },
             };

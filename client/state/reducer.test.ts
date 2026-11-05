@@ -23,14 +23,26 @@ describe('reduce', () => {
     expect(server(initialState(), { t: 'room_state', room }).room).toEqual(room);
   });
 
-  it('replaces view and clears events on game_state', () => {
+  it('replaces view on game_state and keeps the burst events', () => {
+    const e2: GameEvent = { t: 'truco_called', seat: 1, stake: 6 };
     let s = server(initialState(), { t: 'event', event });
+    s = server(s, { t: 'event', event: e2 });
     s = server(s, { t: 'game_state', view });
     expect(s.view).toBe(view);
-    expect(s.events).toEqual([]);
+    expect(s.events).toEqual([event, e2]);
+    expect(s.eventsStale).toBe(true);
   });
 
-  it('appends events', () => {
+  it('replaces the list when a new event follows a game_state', () => {
+    const e2: GameEvent = { t: 'truco_called', seat: 1, stake: 6 };
+    let s = server(initialState(), { t: 'event', event });
+    s = server(s, { t: 'game_state', view });
+    s = server(s, { t: 'event', event: e2 });
+    expect(s.events).toEqual([e2]);
+    expect(s.eventsStale).toBe(false);
+  });
+
+  it('appends events within a burst', () => {
     let s = server(initialState(), { t: 'event', event });
     s = server(s, { t: 'event', event });
     expect(s.events).toHaveLength(2);

@@ -13,6 +13,7 @@ export function renderLobby(
   info: ServerInfo | null,
   send: (m: ClientMessage) => void,
   infoFailed = false,
+  onLeave?: () => void,
 ): HTMLElement {
   const room = state.room;
   const root = el('section', 'panel lobby');
@@ -82,6 +83,12 @@ export function renderLobby(
   const status = el('p', 'muted', statusLine(room));
   status.setAttribute('aria-live', 'polite');
   root.append(status);
+  if (onLeave) {
+    const leave = el('button', 'btn', 'Sair da mesa');
+    leave.type = 'button';
+    leave.addEventListener('click', onLeave);
+    root.append(leave);
+  }
   if (state.error) {
     const err = el('p', 'error', state.error.text);
     err.setAttribute('role', 'alert');

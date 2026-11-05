@@ -11,8 +11,6 @@ export interface HomeView {
   element: HTMLElement;
   /** Patches error text, connection hint and button states without touching typed input. */
   update(state: AppState): void;
-  /** Empties the room code field (e.g. after a dead code was rejected). */
-  clearCode(): void;
 }
 
 /** Home screen: pick a name, then create a table or join one by code. */
@@ -93,8 +91,11 @@ export function createHome(initial: AppState, send: (m: ClientMessage) => void):
   errorEl.setAttribute('role', 'alert');
   errorEl.hidden = !state.error;
 
+  // Set when Criar/Entrar sends; cleared by the next state that carries a result.
+  let pending = false;
+
   function sync(): void {
-    const open = state.conn === 'open';
+    const open = state.conn === 'open' && !pending;
     createBtn.disabled = !open || !canCreate(nameInput.value);
     joinBtn.disabled = !open || !canJoin(nameInput.value, codeInput.value);
   }
@@ -103,12 +104,16 @@ export function createHome(initial: AppState, send: (m: ClientMessage) => void):
     if (createBtn.disabled) return;
     const name = cleanName(nameInput.value);
     saveName(name);
+    pending = true;
+    sync();
     send({ t: 'create_room', mode, name });
   }
   function join(): void {
     if (joinBtn.disabled) return;
     const name = cleanName(nameInput.value);
     saveName(name);
+    pending = true;
+    sync();
     send({ t: 'join_room', code: cleanCode(codeInput.value), name });
   }
 
@@ -126,6 +131,8 @@ export function createHome(initial: AppState, send: (m: ClientMessage) => void):
 
   function update(next: AppState): void {
     state = next;
+    // A reply (joined / error / room) or a dropped connection ends the wait.
+    if (state.error || state.room || state.code || state.conn !== 'open') pending = false;
     errorEl.textContent = state.error?.text ?? '';
     errorEl.hidden = !state.error;
     sync();
@@ -133,9 +140,5 @@ export function createHome(initial: AppState, send: (m: ClientMessage) => void):
 
   root.append(nameLabel, modeGroup, createBtn, divider, joinRow, errorEl);
   update(state);
-  function clearCode(): void {
-    codeInput.value = '';
-    sync();
-  }
-  return { element: root, update, clearCode };
+  return { element: root, update };
 }
