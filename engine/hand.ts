@@ -9,6 +9,7 @@ import {
   type TrickPlay,
   type TrickResult,
 } from './tricks.js';
+import { MAO_DE_FERRO_VALUE } from './maoDeFerro.js';
 import type { MaoDeOnze } from './maoDeOnze.js';
 import { BASE_HAND_VALUE, type TrucoCall } from './truco.js';
 
@@ -16,7 +17,8 @@ import { BASE_HAND_VALUE, type TrucoCall } from './truco.js';
  * One hand of Truco as a small pure state machine: deal, then each player
  * plays one card per trick in counter-clockwise order until the hand is
  * decided. Truco calls (see truco.ts) pause play and set the hand's value;
- * a mão de onze (see maoDeOnze.ts) waits for the team at 11 to decide first.
+ * a mão de onze (see maoDeOnze.ts) waits for the team at 11 to decide first;
+ * a mão de ferro (see maoDeFerro.ts) is played blind, with no truco.
  * Scoring and match flow are layered on top of this.
  */
 
@@ -58,11 +60,15 @@ export interface HandState {
   readonly ranBy: Team | null;
   /** Set when exactly one team is at 11 points: that team decides whether to play. */
   readonly maoDeOnze: MaoDeOnze | null;
+  /** Both teams are at 11: every card is played blind, no truco, worth 1. */
+  readonly maoDeFerro: boolean;
 }
 
 export interface HandOptions {
   /** The team at 11 points, making this hand a mão de onze. */
   readonly maoDeOnze?: Team;
+  /** Both teams are at 11, making this hand a mão de ferro. Excludes `maoDeOnze`. */
+  readonly maoDeFerro?: boolean;
 }
 
 /**
@@ -77,6 +83,10 @@ export function startHand(
   options: HandOptions = {},
 ): HandState {
   assertSeat(dealer, mode);
+  const maoDeFerro = options.maoDeFerro === true;
+  if (maoDeFerro && options.maoDeOnze !== undefined) {
+    throw new Error('A hand cannot be both a mão de onze and a mão de ferro');
+  }
   if (hands.length !== mode) {
     throw new Error(`Expected ${mode} hands, got ${hands.length}`);
   }
@@ -102,12 +112,13 @@ export function startHand(
     tricks: [],
     turn: mao,
     winner: null,
-    value: BASE_HAND_VALUE,
+    value: maoDeFerro ? MAO_DE_FERRO_VALUE : BASE_HAND_VALUE,
     truco: null,
     raisedBy: null,
     ranBy: null,
     maoDeOnze:
       options.maoDeOnze === undefined ? null : { team: options.maoDeOnze, decision: 'pending' },
+    maoDeFerro,
   };
 }
 
@@ -159,7 +170,8 @@ export const FACE_DOWN_FROM_TRICK = 2;
  * `seat` plays `cardId`, face up or, from trick 2 on, face down. Rejects
  * (without throwing) plays out of turn, after the hand is decided, while a
  * truco call awaits an answer or a mão de onze awaits its decision, of a
- * card the player does not hold, or face down in trick 1. When the trick
+ * card the player does not hold, or face down in trick 1 or in a mão de
+ * ferro (where every card is already blind). When the trick
  * completes it is resolved, and either the hand is decided or the trick's
  * leader starts the next one.
  */
@@ -177,7 +189,7 @@ export function playCard(
   const hand = state.hands[seat] ?? [];
   const card = hand.find((c) => c.id === cardId);
   if (card === undefined) return { ok: false, error: 'card_not_in_hand' };
-  if (faceDown && state.tricks.length + 1 < FACE_DOWN_FROM_TRICK) {
+  if (faceDown && (state.maoDeFerro || state.tricks.length + 1 < FACE_DOWN_FROM_TRICK)) {
     return { ok: false, error: 'face_down_not_allowed' };
   }
 

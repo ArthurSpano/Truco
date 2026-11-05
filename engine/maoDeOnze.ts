@@ -86,10 +86,12 @@ export function decideMaoDeOnze(state: HandState, seat: Seat, play: boolean): Ma
 /**
  * Seats whose hands `seat` may see, in seat order. Normally just its own;
  * while a mão de onze decision is pending, the team at 11 sees all of its
- * members' hands. Everything else in `HandState.hands` is hidden information.
+ * members' hands; in a mão de ferro nobody sees any hand, not even their own.
+ * Everything else in `HandState.hands` is hidden information.
  */
 export function handsVisibleTo(state: HandState, seat: Seat): Seat[] {
   assertSeat(seat, state.mode);
+  if (state.maoDeFerro) return [];
   const onze = state.maoDeOnze;
   if (onze !== null && onze.decision === 'pending' && teamOf(seat) === onze.team) {
     return seatsOfTeam(onze.team, state.mode);
