@@ -77,6 +77,9 @@ type HandStep =
 export function applyIntent(state: GameState, seat: Seat, intent: GameIntent): IntentResult {
   if (state.winner !== null) return { ok: false, error: 'match_over' };
   if (!isSeat(seat, state.mode)) return { ok: false, error: 'invalid_seat' };
+  // Guards against unvalidated runtime input such as `null` parsed from JSON.
+  const raw: unknown = intent;
+  if (typeof raw !== 'object' || raw === null) return { ok: false, error: 'invalid_intent' };
 
   const step = applyToHand(state.hand, seat, intent);
   if (!step.ok) return step;

@@ -155,10 +155,12 @@ describe('applyIntent', () => {
     for (const seat of [-1, 2, 0.5, NaN]) {
       expect(applyIntent(game, seat, play('3c'))).toEqual({ ok: false, error: 'invalid_seat' });
     }
-    expect(applyIntent(game, 0, { t: 'shuffle' } as unknown as GameIntent)).toEqual({
-      ok: false,
-      error: 'invalid_intent',
-    });
+    for (const bad of [{ t: 'shuffle' }, null, undefined, 'play_card', 7, []]) {
+      expect(applyIntent(game, 0, bad as unknown as GameIntent)).toEqual({
+        ok: false,
+        error: 'invalid_intent',
+      });
+    }
   });
 
   it('emits trick_won when a trick completes, with the trick leader to play next', () => {
