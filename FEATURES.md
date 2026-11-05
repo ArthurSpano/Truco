@@ -15,7 +15,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 
 ## 2. Game engine
 
-- [ ] 40-card deck, rank order, vira and manilha (with wrap-around)
+- [x] 40-card deck, rank order, vira and manilha (with wrap-around)
 - [ ] Manilha suit order (zap > copas > espadilha > pica-fumo)
 - [ ] Seeded RNG for deterministic tests
 - [ ] 2, 4 and 6 player seating, counter-clockwise turns, dealer rotation
