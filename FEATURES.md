@@ -34,9 +34,9 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 - [x] WebSocket JSON protocol with typed messages in `shared/protocol.ts`
 - [x] Rooms with 4-letter codes, host picks mode (2/4/6)
 - [x] Seat picking, teams by seat parity
-- [ ] Server-authoritative state, personalized snapshots (no hidden-card leaks)
+- [x] Server-authoritative state, personalized snapshots (no hidden-card leaks)
 - [x] Message validation and per-socket rate limit
-- [ ] Rejoin tokens and seat holding on disconnect
+- [x] Rejoin tokens and seat holding on disconnect
 - [ ] Ping/pong heartbeat every 15s
 
 ## 4. Lobby UI
