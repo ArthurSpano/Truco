@@ -24,6 +24,22 @@ export interface Card {
 }
 
 // ---------------------------------------------------------------------------
+// Seating. The protocol and the table layout need these, so they live in
+// shared/ (the rules live in engine/seating.ts).
+
+/** Number of players at the table: 1v1, 2v2 or 3v3. */
+export type GameMode = 2 | 4 | 6;
+
+/**
+ * Seat index, `0` to `mode - 1`. Indices increase counter-clockwise around
+ * the table, which is also the direction of play.
+ */
+export type Seat = number;
+
+/** Team index. Teams are fixed by seat parity: even seats are team `0`, odd seats team `1`. */
+export type Team = 0 | 1;
+
+// ---------------------------------------------------------------------------
 
 /** One way to reach the server from another device on the LAN. */
 export interface LanAddress {
