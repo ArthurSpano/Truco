@@ -102,7 +102,7 @@ describe('playCard', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.state.hands[0]?.map((card) => card.id)).toEqual(['3c', '4c']);
-    expect(result.state.trick).toEqual([{ seat: 0, card: c('Kc') }]);
+    expect(result.state.trick).toEqual([{ seat: 0, card: c('Kc'), faceDown: false }]);
     expect(result.state.turn).toBe(1);
   });
 
@@ -129,8 +129,8 @@ describe('playCard', () => {
     expect(state.tricks).toEqual([
       {
         plays: [
-          { seat: 0, card: c('Kc') },
-          { seat: 1, card: c('2h') },
+          { seat: 0, card: c('Kc'), faceDown: false },
+          { seat: 1, card: c('2h'), faceDown: false },
         ],
         result: { winner: 1, leader: 1 },
       },
@@ -153,6 +153,70 @@ describe('playCard', () => {
     expect(state.tricks.map((t) => t.result.winner)).toEqual([1, 0, 1]);
     expect(state.winner).toBe(1);
     expect(state.hands).toEqual([[], []]);
+  });
+});
+
+describe('face-down play (encoberta)', () => {
+  const start = twoPlayer(['3c', 'Kc', '4c'], ['2h', 'Jh', '5h']);
+
+  /** Plays one card from whoever's turn it is; fails the test on any rejection. */
+  function playDown(state: HandState, id: CardId): HandState {
+    if (state.turn === null) throw new Error(`Hand already over before playing ${id}`);
+    const result = playCard(state, state.turn, id, true);
+    if (!result.ok)
+      throw new Error(`Playing ${id} face down from seat ${state.turn}: ${result.error}`);
+    return result.state;
+  }
+
+  it('is not allowed in trick 1', () => {
+    expect(playCard(start, 0, 'Kc', true)).toEqual({ ok: false, error: 'face_down_not_allowed' });
+    const afterLead = playAll(start, 'Kc');
+    expect(playCard(afterLead, 1, '5h', true)).toEqual({
+      ok: false,
+      error: 'face_down_not_allowed',
+    });
+  });
+
+  it('is allowed from trick 2, and the card leaves the hand', () => {
+    const trick2 = playAll(start, '3c', '2h');
+    const state = playDown(trick2, '4c');
+    expect(state.hands[0]?.map((card) => card.id)).toEqual(['Kc']);
+    expect(state.trick).toEqual([{ seat: 0, card: c('4c'), faceDown: true }]);
+    expect(state.turn).toBe(1);
+  });
+
+  it('a face-down card loses to any face-up card', () => {
+    // Trick 1: 2♥ beats K♣. Trick 2: seat 1 hides J♥, seat 0's 4♣ takes it.
+    const trick2 = playAll(start, 'Kc', '2h');
+    const state = playAll(playDown(trick2, 'Jh'), '4c');
+    expect(state.tricks[1]?.result).toEqual({ winner: 0, leader: 0 });
+    expect(state.tricks[1]?.plays).toEqual([
+      { seat: 1, card: c('Jh'), faceDown: true },
+      { seat: 0, card: c('4c'), faceDown: false },
+    ]);
+    expect(state.turn).toBe(0);
+  });
+
+  it('two face-down cards tie the trick', () => {
+    // Trick 1: seat 0 wins. Trick 2: both face down → tie → trick-1 winner takes the hand.
+    const trick2 = playAll(start, '3c', '2h');
+    const state = playDown(playDown(trick2, '4c'), '5h');
+    expect(state.tricks[1]?.result).toEqual({ winner: null, leader: 0 });
+    expect(state.winner).toBe(0);
+  });
+
+  it('is allowed in trick 3', () => {
+    const trick3 = playAll(start, 'Kc', '2h', 'Jh', '3c');
+    const state = playAll(playDown(trick3, '4c'), '5h');
+    expect(state.tricks[2]?.plays[0]?.faceDown).toBe(true);
+    expect(state.tricks[2]?.result.winner).toBe(1);
+    expect(state.winner).toBe(1);
+  });
+
+  it('still checks the turn and the card before the face-down rule', () => {
+    expect(playCard(start, 1, '2h', true)).toEqual({ ok: false, error: 'not_your_turn' });
+    const trick2 = playAll(start, '3c', '2h');
+    expect(playCard(trick2, 0, '2h', true)).toEqual({ ok: false, error: 'card_not_in_hand' });
   });
 });
 

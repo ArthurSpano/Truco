@@ -1,4 +1,4 @@
-import type { Card, Seat, Team } from '../shared/types.js';
+import type { Card, Seat, TableCard, Team } from '../shared/types.js';
 import { compareCards } from './deck.js';
 import { teamOf } from './seating.js';
 
@@ -10,7 +10,32 @@ import { teamOf } from './seating.js';
 /** One card played to a trick. */
 export interface TrickPlay {
   seat: Seat;
+  /** The real card, even when played face down. Hidden information: see `tableCard`. */
   card: Card;
+  /**
+   * Played face down (*encoberta*): it loses to every face-up card and ties
+   * with other face-down cards, whatever it really is.
+   */
+  faceDown: boolean;
+}
+
+/**
+ * The public form of a play, safe to show every player: a face-down card
+ * drops its identity.
+ */
+export function tableCard(play: TrickPlay): TableCard {
+  return play.faceDown
+    ? { seat: play.seat, faceDown: true }
+    : { seat: play.seat, faceDown: false, card: play.card };
+}
+
+/**
+ * Compares two plays: positive if `a` wins, negative if `b` wins, `0` on a
+ * tie. Face-down cards rank below every face-up card and tie with each other.
+ */
+function comparePlays(a: TrickPlay, b: TrickPlay, vira: Card): number {
+  if (a.faceDown || b.faceDown) return Number(b.faceDown) - Number(a.faceDown);
+  return compareCards(a.card, b.card, vira);
 }
 
 /** Tricks per hand: a hand is best of 3. */
@@ -29,7 +54,8 @@ export interface TrickResult {
 }
 
 /**
- * Resolves a complete trick. The highest card takes it. Only the top cards
+ * Resolves a complete trick. The highest card takes it; face-down cards are
+ * the lowest of all, so a trick of only face-down cards is tied. Only the top cards
  * matter for ties: if they all belong to one team (e.g. two partners both
  * play a 3), that team takes the trick; if both teams share the top, the
  * trick is tied.
@@ -46,7 +72,7 @@ export function resolveTrick(plays: readonly TrickPlay[], vira: Card): TrickResu
   let best = first;
   let top: TrickPlay[] = [first];
   for (const play of rest) {
-    const diff = compareCards(play.card, best.card, vira);
+    const diff = comparePlays(play, best, vira);
     if (diff > 0) {
       best = play;
       top = [play];

@@ -39,6 +39,13 @@ export type Seat = number;
 /** Team index. Teams are fixed by seat parity: even seats are team `0`, odd seats team `1`. */
 export type Team = 0 | 1;
 
+/**
+ * A card on the table as everyone sees it. A face-down card (*encoberta*)
+ * keeps its identity hidden, so it carries no `card` at all.
+ */
+export type TableCard =
+  { seat: Seat; faceDown: false; card: Card } | { seat: Seat; faceDown: true };
+
 // ---------------------------------------------------------------------------
 
 /** One way to reach the server from another device on the LAN. */

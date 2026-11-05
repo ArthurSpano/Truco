@@ -112,26 +112,39 @@ export function dealHand(
   return [startHand(mode, dealer, hands, vira), next];
 }
 
-export type HandError = 'hand_over' | 'not_your_turn' | 'card_not_in_hand';
+export type HandError =
+  'hand_over' | 'not_your_turn' | 'card_not_in_hand' | 'face_down_not_allowed';
 
 export type PlayResult = { ok: true; state: HandState } | { ok: false; error: HandError };
 
+/** Face-down play (*encoberta*) is only allowed from this trick on (1-based). */
+export const FACE_DOWN_FROM_TRICK = 2;
+
 /**
- * `seat` plays `cardId`. Rejects (without throwing) plays out of turn, after
- * the hand is decided, or of a card the player does not hold. When the
- * trick completes it is resolved, and either the hand is decided or the
- * trick's leader starts the next one.
+ * `seat` plays `cardId`, face up or, from trick 2 on, face down. Rejects
+ * (without throwing) plays out of turn, after the hand is decided, of a card
+ * the player does not hold, or face down in trick 1. When the trick
+ * completes it is resolved, and either the hand is decided or the trick's
+ * leader starts the next one.
  */
-export function playCard(state: HandState, seat: Seat, cardId: CardId): PlayResult {
+export function playCard(
+  state: HandState,
+  seat: Seat,
+  cardId: CardId,
+  faceDown = false,
+): PlayResult {
   if (state.winner !== null || state.turn === null) return { ok: false, error: 'hand_over' };
   if (seat !== state.turn) return { ok: false, error: 'not_your_turn' };
 
   const hand = state.hands[seat] ?? [];
   const card = hand.find((c) => c.id === cardId);
   if (card === undefined) return { ok: false, error: 'card_not_in_hand' };
+  if (faceDown && state.tricks.length + 1 < FACE_DOWN_FROM_TRICK) {
+    return { ok: false, error: 'face_down_not_allowed' };
+  }
 
   const hands = state.hands.map((h, s) => (s === seat ? h.filter((c) => c.id !== cardId) : h));
-  const trick = [...state.trick, { seat, card }];
+  const trick = [...state.trick, { seat, card, faceDown }];
 
   if (trick.length < state.mode) {
     return { ok: true, state: { ...state, hands, trick, turn: nextSeat(seat, state.mode) } };

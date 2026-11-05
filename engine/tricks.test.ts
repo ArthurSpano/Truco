@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Card, CardId, Rank, Seat, Suit, Team } from '../shared/types.js';
 import { makeCard } from './deck.js';
-import { handWinner, resolveTrick, type TrickPlay, type TrickWinner } from './tricks.js';
+import { handWinner, resolveTrick, tableCard, type TrickPlay, type TrickWinner } from './tricks.js';
 
 const SUIT_BY_CODE: Record<string, Suit> = { c: 'clubs', h: 'hearts', s: 'spades', d: 'diamonds' };
 
@@ -10,9 +10,21 @@ function c(id: CardId): Card {
   return makeCard(id[0] as Rank, SUIT_BY_CODE[id[1] ?? ''] as Suit);
 }
 
-/** Plays in order from the given seats: `plays([0, '3c'], [1, '2h'])`. */
-function plays(...entries: [Seat, CardId][]): TrickPlay[] {
-  return entries.map(([seat, id]) => ({ seat, card: c(id) }));
+/** A face-down play (*encoberta*) for `plays()`: `[1, down('Kc')]`. */
+function down(id: CardId): { down: CardId } {
+  return { down: id };
+}
+
+/**
+ * Plays in order from the given seats: `plays([0, '3c'], [1, '2h'])`.
+ * Wrap a card in `down()` to play it face down.
+ */
+function plays(...entries: [Seat, CardId | { down: CardId }][]): TrickPlay[] {
+  return entries.map(([seat, id]) =>
+    typeof id === 'string'
+      ? { seat, card: c(id), faceDown: false }
+      : { seat, card: c(id.down), faceDown: true },
+  );
 }
 
 // Vira 7 → manilha Q. Keeps manilhas out of the way unless a test wants them.
@@ -78,6 +90,45 @@ describe('resolveTrick', () => {
     expect(resolveTrick(plays([0, '3c'], [1, '4d']), c('3h'))).toEqual({ winner: 1, leader: 1 });
   });
 
+  describe('face-down cards (encoberta)', () => {
+    it('a face-down card loses to any face-up card, even the lowest', () => {
+      expect(resolveTrick(plays([0, '4c'], [1, down('3h')]), VIRA)).toEqual({
+        winner: 0,
+        leader: 0,
+      });
+      expect(resolveTrick(plays([0, down('3h')], [1, '4c']), VIRA)).toEqual({
+        winner: 1,
+        leader: 1,
+      });
+    });
+
+    it('a face-down manilha counts for nothing', () => {
+      // Q♣ is the zap with vira 7, but face down it cannot win.
+      expect(resolveTrick(plays([0, down('Qc')], [1, '5h']), VIRA).winner).toBe(1);
+    });
+
+    it('a face-down card does not tie with a face-up card of the same rank', () => {
+      expect(resolveTrick(plays([0, '3c'], [1, down('3h')]), VIRA).winner).toBe(0);
+    });
+
+    it('all cards face down across both teams → tie, led by the first to play', () => {
+      expect(resolveTrick(plays([1, down('3c')], [0, down('4h')]), VIRA)).toEqual({
+        winner: null,
+        leader: 1,
+      });
+    });
+
+    it('in 4 players, the only face-up card takes the trick', () => {
+      const trick = plays([0, down('3c')], [1, down('2h')], [2, '4d'], [3, down('Qc')]);
+      expect(resolveTrick(trick, VIRA)).toEqual({ winner: 0, leader: 2 });
+    });
+
+    it('face-down cards are ignored when the face-up cards tie', () => {
+      const trick = plays([0, 'Kc'], [1, down('3h')], [2, down('3d')], [3, 'Ks']);
+      expect(resolveTrick(trick, VIRA)).toEqual({ winner: null, leader: 0 });
+    });
+  });
+
   it('throws on an empty trick', () => {
     expect(() => resolveTrick([], VIRA)).toThrow();
   });
@@ -126,5 +177,23 @@ describe('handWinner', () => {
 
   it('rejects more than three tricks', () => {
     expect(() => handWinner(T(0, 1, null, 0), 0)).toThrow();
+  });
+});
+
+describe('tableCard', () => {
+  function only(trick: TrickPlay[]): TrickPlay {
+    const [play] = trick;
+    if (play === undefined) throw new Error('no play');
+    return play;
+  }
+
+  it('shows a face-up card as played', () => {
+    expect(tableCard(only(plays([1, 'Ac'])))).toEqual({ seat: 1, faceDown: false, card: c('Ac') });
+  });
+
+  it('hides the identity of a face-down card', () => {
+    const shown = tableCard(only(plays([2, down('Qc')])));
+    expect(shown).toEqual({ seat: 2, faceDown: true });
+    expect(JSON.stringify(shown)).not.toContain('Qc');
   });
 });
