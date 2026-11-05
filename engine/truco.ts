@@ -18,6 +18,8 @@ import { assertSeat, teamOf } from './seating.js';
  * other team may call the next step, on one of its players' turns. In 4 and
  * 6 player games any member of the answering team may answer; the first
  * answer counts.
+ *
+ * Truco cannot be called at all during a mão de onze (see maoDeOnze.ts).
  */
 
 /** What a hand is worth before anyone calls truco. */
@@ -47,6 +49,7 @@ export type TrucoError =
   | 'hand_over'
   | 'not_your_turn'
   | 'truco_pending'
+  | 'truco_not_allowed'
   | 'no_truco_pending'
   | 'not_your_team_to_raise'
   | 'not_your_team_to_answer'
@@ -58,12 +61,14 @@ export type TrucoResult = { ok: true; state: HandState } | { ok: false; error: T
 /**
  * `seat` calls truco, or the next step of the ladder. Allowed only on the
  * caller's turn, while no other call is pending, if the caller's team did not
- * make the latest raise and the hand is not already worth Doze.
+ * make the latest raise, the hand is not already worth Doze and it is not a
+ * mão de onze.
  */
 export function callTruco(state: HandState, seat: Seat): TrucoResult {
   assertSeat(seat, state.mode);
   if (state.winner !== null || state.turn === null) return { ok: false, error: 'hand_over' };
   if (state.truco !== null) return { ok: false, error: 'truco_pending' };
+  if (state.maoDeOnze !== null) return { ok: false, error: 'truco_not_allowed' };
   if (seat !== state.turn) return { ok: false, error: 'not_your_turn' };
 
   const team = teamOf(seat);

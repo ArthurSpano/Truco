@@ -9,13 +9,15 @@ import {
   type TrickPlay,
   type TrickResult,
 } from './tricks.js';
+import type { MaoDeOnze } from './maoDeOnze.js';
 import { BASE_HAND_VALUE, type TrucoCall } from './truco.js';
 
 /**
  * One hand of Truco as a small pure state machine: deal, then each player
  * plays one card per trick in counter-clockwise order until the hand is
  * decided. Truco calls (see truco.ts) pause play and set the hand's value;
- * scoring and match flow are layered on top of this.
+ * a mão de onze (see maoDeOnze.ts) waits for the team at 11 to decide first.
+ * Scoring and match flow are layered on top of this.
  */
 
 /** Cards dealt to each player, in every mode. */
@@ -52,8 +54,15 @@ export interface HandState {
   readonly truco: TrucoCall | null;
   /** Team that made the latest accepted raise: only the other team may raise next. */
   readonly raisedBy: Team | null;
-  /** Team that ran from a truco call, ending the hand early; `null` otherwise. */
+  /** Team that ran (from a truco call or a mão de onze), ending the hand early; `null` otherwise. */
   readonly ranBy: Team | null;
+  /** Set when exactly one team is at 11 points: that team decides whether to play. */
+  readonly maoDeOnze: MaoDeOnze | null;
+}
+
+export interface HandOptions {
+  /** The team at 11 points, making this hand a mão de onze. */
+  readonly maoDeOnze?: Team;
 }
 
 /**
@@ -65,6 +74,7 @@ export function startHand(
   dealer: Seat,
   hands: readonly (readonly Card[])[],
   vira: Card,
+  options: HandOptions = {},
 ): HandState {
   assertSeat(dealer, mode);
   if (hands.length !== mode) {
@@ -96,18 +106,21 @@ export function startHand(
     truco: null,
     raisedBy: null,
     ranBy: null,
+    maoDeOnze:
+      options.maoDeOnze === undefined ? null : { team: options.maoDeOnze, decision: 'pending' },
   };
 }
 
 /**
  * Shuffles a fresh deck and deals: one card at a time, counter-clockwise
  * starting with the mão, three rounds; then the next card is turned up as
- * the vira. Returns the advanced RNG state.
+ * the vira. Returns the advanced RNG state. `options` as for `startHand`.
  */
 export function dealHand(
   mode: GameMode,
   dealer: Seat,
   rng: RngState,
+  options: HandOptions = {},
 ): [hand: HandState, next: RngState] {
   assertSeat(dealer, mode);
   const [deck, next] = shuffle(createDeck(), rng);
@@ -126,11 +139,16 @@ export function dealHand(
   }
   const vira = draw();
 
-  return [startHand(mode, dealer, hands, vira), next];
+  return [startHand(mode, dealer, hands, vira, options), next];
 }
 
 export type HandError =
-  'hand_over' | 'truco_pending' | 'not_your_turn' | 'card_not_in_hand' | 'face_down_not_allowed';
+  | 'hand_over'
+  | 'truco_pending'
+  | 'mao_de_onze_pending'
+  | 'not_your_turn'
+  | 'card_not_in_hand'
+  | 'face_down_not_allowed';
 
 export type PlayResult = { ok: true; state: HandState } | { ok: false; error: HandError };
 
@@ -140,8 +158,8 @@ export const FACE_DOWN_FROM_TRICK = 2;
 /**
  * `seat` plays `cardId`, face up or, from trick 2 on, face down. Rejects
  * (without throwing) plays out of turn, after the hand is decided, while a
- * truco call awaits an answer, of a card the player does not hold, or face
- * down in trick 1. When the trick
+ * truco call awaits an answer or a mão de onze awaits its decision, of a
+ * card the player does not hold, or face down in trick 1. When the trick
  * completes it is resolved, and either the hand is decided or the trick's
  * leader starts the next one.
  */
@@ -153,6 +171,7 @@ export function playCard(
 ): PlayResult {
   if (state.winner !== null || state.turn === null) return { ok: false, error: 'hand_over' };
   if (state.truco !== null) return { ok: false, error: 'truco_pending' };
+  if (state.maoDeOnze?.decision === 'pending') return { ok: false, error: 'mao_de_onze_pending' };
   if (seat !== state.turn) return { ok: false, error: 'not_your_turn' };
 
   const hand = state.hands[seat] ?? [];
