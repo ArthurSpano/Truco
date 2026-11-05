@@ -14,7 +14,8 @@ import { BASE_HAND_VALUE, type TrucoCall } from './truco.js';
 /**
  * One hand of Truco as a small pure state machine: deal, then each player
  * plays one card per trick in counter-clockwise order until the hand is
- * decided. Scoring, truco and match flow are layered on top of this.
+ * decided. Truco calls (see truco.ts) pause play and set the hand's value;
+ * scoring and match flow are layered on top of this.
  */
 
 /** Cards dealt to each player, in every mode. */

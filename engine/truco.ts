@@ -50,7 +50,8 @@ export type TrucoError =
   | 'no_truco_pending'
   | 'not_your_team_to_raise'
   | 'not_your_team_to_answer'
-  | 'ladder_maxed';
+  | 'ladder_maxed'
+  | 'invalid_answer';
 
 export type TrucoResult = { ok: true; state: HandState } | { ok: false; error: TrucoError };
 
@@ -110,5 +111,8 @@ export function respondTruco(state: HandState, seat: Seat, answer: TrucoAnswer):
         },
       };
     }
+    default:
+      // Unreachable for typed callers; guards against unvalidated runtime input.
+      return { ok: false, error: 'invalid_answer' };
   }
 }

@@ -191,6 +191,14 @@ describe('answering a call', () => {
     });
   });
 
+  it('rejects an unknown answer instead of returning nothing', () => {
+    const s = call(fresh(2), 0);
+    expect(respondTruco(s, 1, 'fold' as TrucoAnswer)).toEqual({
+      ok: false,
+      error: 'invalid_answer',
+    });
+  });
+
   it('rejects an answer with no call pending', () => {
     expect(respondTruco(fresh(2), 1, 'accept')).toEqual({ ok: false, error: 'no_truco_pending' });
   });
