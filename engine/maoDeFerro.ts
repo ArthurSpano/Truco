@@ -11,7 +11,9 @@ import { MAO_DE_ONZE_SCORE } from './maoDeOnze.js';
  * is already played blind. The hand is worth 1 point, which wins the match.
  *
  * Start one with `startHand(..., { maoDeFerro: true })`; `handsVisibleTo`
- * then hides every hand, including each player's own.
+ * then hides every hand, including each player's own, and cards are played
+ * by position with `playBlind` (`playCard` rejects them, since a card id
+ * names the card).
  */
 
 /** What a mão de ferro is worth. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Card, CardId, GameMode, Rank, Suit } from '../shared/types.js';
 import { makeCard } from './deck.js';
-import { dealHand, playCard, startHand, type HandState } from './hand.js';
+import { dealHand, playBlind, playCard, startHand, type HandState } from './hand.js';
 import { MAO_DE_FERRO_VALUE, isMaoDeFerro } from './maoDeFerro.js';
 import { decideMaoDeOnze, handsVisibleTo } from './maoDeOnze.js';
 import { seedRng } from './rng.js';
@@ -44,12 +44,21 @@ function ok(result: { ok: true; state: HandState } | { ok: false; error: string 
   return result.state;
 }
 
-/** Plays each card in turn, whoever's turn it is. */
+/**
+ * Plays each card in turn, whoever's turn it is: blind (by its slot) in a
+ * mão de ferro, by id otherwise. Ids only make the tests readable.
+ */
 function playAll(state: HandState, ...ids: CardId[]): HandState {
   let s = state;
   for (const id of ids) {
-    if (s.turn === null) throw new Error(`Hand already over before playing ${id}`);
-    s = ok(playCard(s, s.turn, id));
+    const seat = s.turn;
+    if (seat === null) throw new Error(`Hand already over before playing ${id}`);
+    if (s.maoDeFerro) {
+      const slot = (s.hands[seat] ?? []).findIndex((card) => card.id === id);
+      s = ok(playBlind(s, seat, slot));
+    } else {
+      s = ok(playCard(s, seat, id));
+    }
   }
   return s;
 }
@@ -147,19 +156,52 @@ describe('playing blind', () => {
     expect(s.value).toBe(1);
   });
 
-  it('deliberate face-down play (encoberta) is not allowed: every card is already blind', () => {
-    const s = playAll(fresh(2), '3c', '2c');
-    expect(s.tricks).toHaveLength(1);
-    expect(playCard(s, 0, '4c', true)).toEqual({ ok: false, error: 'face_down_not_allowed' });
-    // An ordinary hand still allows it from trick 2.
+  it('plays the card at the given position of the hand, in deal order', () => {
+    // Seat 0 holds 3c, 4c, 5c: slot 2 is the 5c.
+    let s = ok(playBlind(fresh(2), 0, 2));
+    expect(s.trick).toEqual([{ seat: 0, card: c('5c'), faceDown: false }]);
+    expect(s.hands[0]).toEqual([c('3c'), c('4c')]);
+    // Slots refer to the cards still held: seat 1 (2c, 4h, 5h) plays slot 0, the 2c.
+    s = ok(playBlind(s, 1, 0));
+    expect(s.tricks[0]?.plays.map((p) => p.card.id)).toEqual(['5c', '2c']);
+    expect(s.hands[1]).toEqual([c('4h'), c('5h')]);
+  });
+
+  it('cards cannot be picked by id, which would let a player choose or probe a blind hand', () => {
+    const s = fresh(2);
+    expect(playCard(s, 0, '3c')).toEqual({ ok: false, error: 'blind_play_required' });
+    expect(playCard(s, 0, '2c')).toEqual({ ok: false, error: 'blind_play_required' });
+    // Deliberate face-down play (encoberta) is not possible either: every card is already blind.
+    const later = playAll(s, '3c', '2c');
+    expect(playCard(later, 0, '4c', true)).toEqual({ ok: false, error: 'blind_play_required' });
+    // An ordinary hand still allows encoberta from trick 2.
     const ordinary = playAll(fresh(2, false), '3c', '2c');
     expect(playCard(ordinary, 0, '4c', true).ok).toBe(true);
   });
 
-  it('still enforces turn order and cards in hand', () => {
+  it('rejects slots the player does not have', () => {
     const s = fresh(2);
-    expect(playCard(s, 1, '2c')).toEqual({ ok: false, error: 'not_your_turn' });
-    expect(playCard(s, 0, '2c')).toEqual({ ok: false, error: 'card_not_in_hand' });
+    for (const slot of [-1, 3, 0.5, Number.NaN]) {
+      expect(playBlind(s, 0, slot)).toEqual({ ok: false, error: 'invalid_slot' });
+    }
+    // 3c beats 4h, then 5h beats 4c: 1-1, and seat 1 leads trick 3 with one card left.
+    const last = playAll(s, '3c', '4h', '4c', '5h');
+    expect(last.turn).toBe(1);
+    const seat = 1;
+    expect(playBlind(last, seat, 1)).toEqual({ ok: false, error: 'invalid_slot' });
+    expect(playBlind(last, seat, 0).ok).toBe(true);
+  });
+
+  it('blind play is only for a mão de ferro', () => {
+    expect(playBlind(fresh(2, false), 0, 0)).toEqual({ ok: false, error: 'not_mao_de_ferro' });
+  });
+
+  it('still enforces turn order and the end of the hand', () => {
+    const s = fresh(2);
+    expect(playBlind(s, 1, 0)).toEqual({ ok: false, error: 'not_your_turn' });
+    const over = playAll(s, '3c', '2c', '4c', '4h');
+    expect(over.winner).not.toBeNull();
+    expect(playBlind(over, 0, 0)).toEqual({ ok: false, error: 'hand_over' });
   });
 });
 

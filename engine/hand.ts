@@ -159,7 +159,10 @@ export type HandError =
   | 'mao_de_onze_pending'
   | 'not_your_turn'
   | 'card_not_in_hand'
-  | 'face_down_not_allowed';
+  | 'face_down_not_allowed'
+  | 'blind_play_required'
+  | 'not_mao_de_ferro'
+  | 'invalid_slot';
 
 export type PlayResult = { ok: true; state: HandState } | { ok: false; error: HandError };
 
@@ -170,10 +173,11 @@ export const FACE_DOWN_FROM_TRICK = 2;
  * `seat` plays `cardId`, face up or, from trick 2 on, face down. Rejects
  * (without throwing) plays out of turn, after the hand is decided, while a
  * truco call awaits an answer or a mão de onze awaits its decision, of a
- * card the player does not hold, or face down in trick 1 or in a mão de
- * ferro (where every card is already blind). When the trick
- * completes it is resolved, and either the hand is decided or the trick's
- * leader starts the next one.
+ * card the player does not hold, or face down in trick 1. In a mão de ferro
+ * cards cannot be picked by id at all, since an id names the card and probing
+ * ids would reveal (or choose from) the blind hand: use `playBlind` instead.
+ * When the trick completes it is resolved, and either the hand is decided or
+ * the trick's leader starts the next one.
  */
 export function playCard(
   state: HandState,
@@ -181,23 +185,52 @@ export function playCard(
   cardId: CardId,
   faceDown = false,
 ): PlayResult {
-  if (state.winner !== null || state.turn === null) return { ok: false, error: 'hand_over' };
-  if (state.truco !== null) return { ok: false, error: 'truco_pending' };
-  if (state.maoDeOnze?.decision === 'pending') return { ok: false, error: 'mao_de_onze_pending' };
-  if (seat !== state.turn) return { ok: false, error: 'not_your_turn' };
+  const blocked = playBlocked(state, seat);
+  if (blocked !== null) return { ok: false, error: blocked };
+  if (state.maoDeFerro) return { ok: false, error: 'blind_play_required' };
 
-  const hand = state.hands[seat] ?? [];
-  const card = hand.find((c) => c.id === cardId);
+  const card = (state.hands[seat] ?? []).find((c) => c.id === cardId);
   if (card === undefined) return { ok: false, error: 'card_not_in_hand' };
-  if (faceDown && (state.maoDeFerro || state.tricks.length + 1 < FACE_DOWN_FROM_TRICK)) {
+  if (faceDown && state.tricks.length + 1 < FACE_DOWN_FROM_TRICK) {
     return { ok: false, error: 'face_down_not_allowed' };
   }
+  return { ok: true, state: applyPlay(state, seat, card, faceDown) };
+}
 
-  const hands = state.hands.map((h, s) => (s === seat ? h.filter((c) => c.id !== cardId) : h));
+/**
+ * In a mão de ferro, `seat` plays the card at position `slot` (0-based) of
+ * its hand without knowing what it is. Positions follow the shuffled deal, so
+ * they carry no information. The card is turned up as it is played and
+ * competes by its real value; deliberate encoberta is impossible since every
+ * card is already blind. Rejects outside a mão de ferro and on a slot the
+ * player does not have, plus the same turn checks as `playCard`.
+ */
+export function playBlind(state: HandState, seat: Seat, slot: number): PlayResult {
+  const blocked = playBlocked(state, seat);
+  if (blocked !== null) return { ok: false, error: blocked };
+  if (!state.maoDeFerro) return { ok: false, error: 'not_mao_de_ferro' };
+
+  const card = Number.isInteger(slot) ? state.hands[seat]?.[slot] : undefined;
+  if (card === undefined) return { ok: false, error: 'invalid_slot' };
+  return { ok: true, state: applyPlay(state, seat, card, false) };
+}
+
+/** Why `seat` may not play any card right now, or `null` if it may. */
+function playBlocked(state: HandState, seat: Seat): HandError | null {
+  if (state.winner !== null || state.turn === null) return 'hand_over';
+  if (state.truco !== null) return 'truco_pending';
+  if (state.maoDeOnze?.decision === 'pending') return 'mao_de_onze_pending';
+  if (seat !== state.turn) return 'not_your_turn';
+  return null;
+}
+
+/** Puts an already validated play on the table, resolving the trick once it is complete. */
+function applyPlay(state: HandState, seat: Seat, card: Card, faceDown: boolean): HandState {
+  const hands = state.hands.map((h, s) => (s === seat ? h.filter((c) => c.id !== card.id) : h));
   const trick = [...state.trick, { seat, card, faceDown }];
 
   if (trick.length < state.mode) {
-    return { ok: true, state: { ...state, hands, trick, turn: nextSeat(seat, state.mode) } };
+    return { ...state, hands, trick, turn: nextSeat(seat, state.mode) };
   }
 
   const result = resolveTrick(trick, state.vira);
@@ -212,14 +245,11 @@ export function playCard(
   }
 
   return {
-    ok: true,
-    state: {
-      ...state,
-      hands,
-      trick: [],
-      tricks,
-      turn: winner === null ? result.leader : null,
-      winner,
-    },
+    ...state,
+    hands,
+    trick: [],
+    tricks,
+    turn: winner === null ? result.leader : null,
+    winner,
   };
 }
