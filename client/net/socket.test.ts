@@ -220,6 +220,27 @@ describe('GameSocket', () => {
     expect(statuses.at(-1)).toBe('closed');
   });
 
+  it('reports onReplaced only for the replaced close code', () => {
+    const onReplaced = vi.fn();
+    const gs = new GameSocket({
+      url: 'ws://x',
+      tokens: memTokens('tok'),
+      WebSocketImpl: FakeWebSocket as unknown as typeof WebSocket,
+      backoffMs: () => 0,
+      onMessage: () => undefined,
+      onStatus: () => undefined,
+      onReplaced,
+    });
+    gs.connect();
+    last().open();
+    last().drop(1006);
+    expect(onReplaced).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(10);
+    last().open();
+    last().drop(REPLACED_CLOSE_CODE);
+    expect(onReplaced).toHaveBeenCalledTimes(1);
+  });
+
   it('send before open does not throw and drops the message', () => {
     const { gs } = setup(null);
     expect(() => {

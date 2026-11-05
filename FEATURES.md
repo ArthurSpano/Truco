@@ -42,8 +42,8 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 ## 4. Lobby UI
 
 - [x] Create room / join by code
-- [ ] Pick seat and ready up
-- [ ] Lobby shows LAN URL and QR
+- [x] Pick seat and ready up
+- [x] Lobby shows LAN URL and QR
 
 ## 5. Table UI
 

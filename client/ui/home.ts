@@ -17,8 +17,19 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+export interface HomeView {
+  element: HTMLElement;
+  /** Patches error text, connection hint and button states without touching typed input. */
+  update(state: AppState): void;
+}
+
 /** Home screen: pick a name, then create a table or join one by code. */
 export function renderHome(state: AppState, send: (m: ClientMessage) => void): HTMLElement {
+  return createHome(state, send).element;
+}
+
+export function createHome(initial: AppState, send: (m: ClientMessage) => void): HomeView {
+  let state = initial;
   const root = el('section', 'panel home');
   let mode: Mode = 4;
 
@@ -121,9 +132,17 @@ export function renderHome(state: AppState, send: (m: ClientMessage) => void): H
   joinBtn.addEventListener('click', join);
   sync();
 
-  root.append(nameLabel, modeGroup, createBtn, divider, joinRow, errorEl);
-  if (state.conn !== 'open') {
-    root.append(el('p', 'muted small', 'Conectando ao servidor...'));
+  const connEl = el('p', 'muted small', 'Conectando ao servidor...');
+
+  function update(next: AppState): void {
+    state = next;
+    errorEl.textContent = state.error?.text ?? '';
+    errorEl.hidden = !state.error;
+    connEl.hidden = state.conn === 'open';
+    sync();
   }
-  return root;
+
+  root.append(nameLabel, modeGroup, createBtn, divider, joinRow, errorEl, connEl);
+  update(state);
+  return { element: root, update };
 }

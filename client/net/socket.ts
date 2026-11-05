@@ -10,6 +10,8 @@ export interface SocketOptions {
   backoffMs?: (attempt: number) => number;
   onMessage(msg: ServerMessage): void;
   onStatus(status: ConnStatus): void;
+  /** Called when the server closed this socket because another tab/device took the session. */
+  onReplaced?(): void;
 }
 
 const OPEN = 1;
@@ -97,6 +99,7 @@ export class GameSocket {
       this.ws = null;
       if (this.stopped || e.code === REPLACED_CLOSE_CODE) {
         this.stopped = true;
+        if (e.code === REPLACED_CLOSE_CODE) this.opts.onReplaced?.();
         this.opts.onStatus('closed');
         return;
       }

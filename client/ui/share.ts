@@ -4,7 +4,7 @@ import type { ServerInfo } from '../../shared/types.js';
  * "Chama a galera" card: the LAN URL plus a QR code friends can scan.
  * Reused by the lobby.
  */
-export function renderShareCard(info: ServerInfo): HTMLElement {
+export function renderShareCard(info: ServerInfo, roomCode?: string): HTMLElement {
   const card = document.createElement('div');
   card.className = 'share';
 
@@ -36,6 +36,12 @@ export function renderShareCard(info: ServerInfo): HTMLElement {
   url.textContent = primary.url.replace(/^https?:\/\//, '');
 
   card.append(title, qr, hint, url);
+  if (roomCode) {
+    const code = document.createElement('p');
+    code.className = 'muted small';
+    code.textContent = `Código da sala: ${roomCode}`;
+    card.append(code);
+  }
 
   const others = info.urls.slice(1).filter((a) => !a.virtual);
   if (others.length > 0) {
