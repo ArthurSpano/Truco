@@ -5,6 +5,7 @@ import { DEFAULT_PORT, type LanAddress } from '../shared/types.js';
 import { createApp } from './app.js';
 import { lanAddresses } from './lan.js';
 import { serveBuiltClient } from './static.js';
+import { attachWebSocket } from './ws.js';
 
 /** Listen on every interface so phones on the same Wi-Fi/hotspot can connect. */
 const HOST = '0.0.0.0';
@@ -17,6 +18,7 @@ const clientDir = fileURLToPath(new URL('../client', import.meta.url));
 
 const app = createApp({ port });
 const httpServer = http.createServer(app);
+const gameWs = attachWebSocket(httpServer);
 let closeVite: (() => Promise<void>) | undefined;
 
 if (isDev) {
@@ -53,6 +55,7 @@ httpServer.listen(port, HOST, () => {
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
+    void gameWs.close();
     httpServer.close();
     httpServer.closeAllConnections();
     void (closeVite?.() ?? Promise.resolve()).finally(() => process.exit(0));

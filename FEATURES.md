@@ -37,7 +37,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 - [x] Server-authoritative state, personalized snapshots (no hidden-card leaks)
 - [x] Message validation and per-socket rate limit
 - [x] Rejoin tokens and seat holding on disconnect
-- [ ] Ping/pong heartbeat every 15s
+- [x] Ping/pong heartbeat every 15s
 
 ## 4. Lobby UI
 
