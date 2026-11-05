@@ -25,7 +25,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 - [x] Mão de onze
 - [x] Mão de ferro
 - [x] Win at 12 points
-- [ ] `createGame`, `applyIntent`, `viewFor`
+- [x] `createGame`, `applyIntent`, `viewFor`
 - [ ] Rule variants in `engine/config.ts`
 - [ ] Vitest coverage and a harness simulating full 2/4/6 player games
 
