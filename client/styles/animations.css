@@ -1,0 +1,167 @@
+/* Card slide, trick sweep, screen shake and truco flash. Classes are added by ui/animations.ts. */
+
+/* Slide: the card child moves; the slot keeps its own centring transform. */
+.played-slot > .card {
+  --from-x: 0px;
+  --from-y: 0px;
+}
+.slide-from-bottom {
+  --from-y: 140px;
+}
+.slide-from-top {
+  --from-y: -140px;
+}
+.slide-from-left {
+  --from-x: -140px;
+}
+.slide-from-right {
+  --from-x: 140px;
+}
+.slide-from-bottom-right {
+  --from-x: 110px;
+  --from-y: 110px;
+}
+.slide-from-top-right {
+  --from-x: 110px;
+  --from-y: -110px;
+}
+.slide-from-top-left {
+  --from-x: -110px;
+  --from-y: -110px;
+}
+.slide-from-bottom-left {
+  --from-x: -110px;
+  --from-y: 110px;
+}
+[class*='slide-from-'] {
+  animation: card-slide 0.3s ease-out both;
+}
+
+@keyframes card-slide {
+  from {
+    transform: translate(var(--from-x), var(--from-y)) scale(1.15);
+    opacity: 0.2;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Sweep: the finished trick (shown dimmed) waits a beat, then flies to the winner. */
+.played-slot.last-trick {
+  --to-x: 0px;
+  --to-y: 0px;
+}
+.sweep-to-bottom {
+  --to-y: 160px;
+}
+.sweep-to-top {
+  --to-y: -160px;
+}
+.sweep-to-left {
+  --to-x: -160px;
+}
+.sweep-to-right {
+  --to-x: 160px;
+}
+.sweep-to-bottom-right {
+  --to-x: 120px;
+  --to-y: 120px;
+}
+.sweep-to-top-right {
+  --to-x: 120px;
+  --to-y: -120px;
+}
+.sweep-to-top-left {
+  --to-x: -120px;
+  --to-y: -120px;
+}
+.sweep-to-bottom-left {
+  --to-x: -120px;
+  --to-y: 120px;
+}
+[class*='sweep-to-'],
+.sweep-fade {
+  animation: trick-sweep 0.4s ease-in 0.4s both;
+}
+.sweep-fade {
+  animation-name: trick-fade;
+}
+.played-slot.swept {
+  visibility: hidden;
+}
+
+@keyframes trick-sweep {
+  to {
+    translate: var(--to-x) var(--to-y);
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+@keyframes trick-fade {
+  to {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+/* Shake: the scene host jolts; strength 3 is the biggest (DOZE). */
+.shake-1 {
+  animation: screen-shake 0.4s linear;
+  --shake: 3px;
+}
+.shake-2 {
+  animation: screen-shake 0.5s linear;
+  --shake: 6px;
+}
+.shake-3 {
+  animation: screen-shake 0.6s linear;
+  --shake: 10px;
+}
+@keyframes screen-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translate(calc(-1 * var(--shake)), calc(var(--shake) / 2));
+  }
+  40% {
+    transform: translate(var(--shake), calc(-1 * var(--shake) / 2));
+  }
+  60% {
+    transform: translate(calc(-0.6 * var(--shake)), 0);
+  }
+  80% {
+    transform: translate(calc(0.6 * var(--shake)), 0);
+  }
+}
+
+.truco-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgb(255 240 190 / 0.55), rgb(214 58 44 / 0.25));
+  pointer-events: none;
+  animation: truco-flash 0.4s ease-out both;
+}
+@keyframes truco-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*='slide-from-'],
+  [class*='sweep-to-'],
+  .sweep-fade,
+  .shake-1,
+  .shake-2,
+  .shake-3,
+  .truco-flash {
+    animation: none;
+  }
+}

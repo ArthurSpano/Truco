@@ -175,7 +175,20 @@
 }
 
 .chair.turn {
-  animation: chair-wiggle 0.9s ease-in-out infinite;
+  --wiggle: 5deg;
+  --wiggle-time: 0.9s;
+  animation: chair-wiggle var(--wiggle-time) ease-in-out infinite;
+}
+
+/* Your own turn: a bigger, quicker wiggle. */
+.chair.mine.turn {
+  --wiggle: 9deg;
+  --wiggle-time: 0.6s;
+}
+
+/* The tag counter-rotates by the same amount so the name stays upright while the chair wiggles. */
+.chair.turn .chair-tag {
+  animation: tag-steady var(--wiggle-time) ease-in-out infinite;
 }
 
 @keyframes chair-wiggle {
@@ -184,10 +197,23 @@
     transform: translate(-50%, -50%) rotate(var(--angle));
   }
   25% {
-    transform: translate(-50%, -50%) rotate(calc(var(--angle) - 5deg));
+    transform: translate(-50%, -50%) rotate(calc(var(--angle) - var(--wiggle)));
   }
   75% {
-    transform: translate(-50%, -50%) rotate(calc(var(--angle) + 5deg));
+    transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--wiggle)));
+  }
+}
+
+@keyframes tag-steady {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(calc(-1 * var(--angle)));
+  }
+  25% {
+    transform: translate(-50%, -50%) rotate(calc(-1 * var(--angle) + var(--wiggle)));
+  }
+  75% {
+    transform: translate(-50%, -50%) rotate(calc(-1 * var(--angle) - var(--wiggle)));
   }
 }
 
@@ -205,6 +231,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .chair.turn,
+  .chair.turn .chair-tag,
   .bulb,
   .scene-tv {
     animation: none;

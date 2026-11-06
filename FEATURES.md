@@ -60,7 +60,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 
 ## 7. Polish
 
-- [ ] Animations (card slide, trick sweep, chair wiggle, screen shake)
+- [x] Animations (card slide, trick sweep, chair wiggle, screen shake)
 - [x] Sounds with WebAudio and mute toggle (unverified in a browser)
 - [ ] Quick-chat phrases
 - [ ] Reconnect handling in the UI

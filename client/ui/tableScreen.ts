@@ -2,6 +2,8 @@ import type { ClientMessage, RoomState } from '../../shared/protocol.js';
 import type { GameEvent, GameView } from '../../shared/types.js';
 import { createEventFeed } from '../state/eventFeed.js';
 import type { AppState } from '../state/reducer.js';
+import { AnimationQueue } from './animations.js';
+import { animationFor, type Animation } from './animationModel.js';
 import { BubbleLayer } from './bubbles.js';
 import { bubblesFor } from './bubbleModel.js';
 import { el } from './dom.js';
@@ -71,8 +73,18 @@ export function createTableScreen(deps: TableDeps): TableScreen {
       eventListeners.delete(cb);
     };
   };
-  onEvents((events) => {
+  const animations = new AnimationQueue(sceneHost, fx);
+  onEvents((events, state) => {
     for (const b of bubblesFor(events)) bubbles.show(b);
+    // Queued now, played after the burst's snapshot has rendered (see the update() flush).
+    if (!state.view) return;
+    const { seat, mode } = state.view;
+    const found: Animation[] = [];
+    for (const e of events) {
+      const a = animationFor(e, seat, mode);
+      if (a) found.push(a);
+    }
+    animations.enqueue(found);
   });
 
   /** Runs on every state update (even ones that do not rebuild the table). */
@@ -134,9 +146,11 @@ export function createTableScreen(deps: TableDeps): TableScreen {
         }),
       );
       for (const cb of [...listeners]) cb(next.view, ctx);
+      animations.flush();
     },
     destroy() {
       bubbles.destroy();
+      animations.destroy();
       listeners.clear();
       eventListeners.clear();
       element.replaceChildren();
