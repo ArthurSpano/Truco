@@ -8,7 +8,7 @@ export function renderMuteButton(sfx: Sfx): HTMLElement {
   const paint = (): void => {
     button.textContent = sfx.muted ? '🔇' : '🔊';
     button.setAttribute('aria-pressed', String(sfx.muted));
-    button.setAttribute('aria-label', sfx.muted ? 'Ativar som' : 'Silenciar');
+    button.setAttribute('aria-label', 'Silenciar som');
   };
   button.addEventListener('click', () => {
     sfx.setMuted(!sfx.muted);

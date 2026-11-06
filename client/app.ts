@@ -52,13 +52,14 @@ export function startApp(root: HTMLElement): void {
   const sfx = createSfx();
   const soundFeed = createEventFeed();
   root.replaceChildren(header, banner, main, renderMuteButton(sfx));
-  window.addEventListener(
-    'pointerdown',
-    () => {
-      sfx.unlock();
-    },
-    { once: true },
-  );
+  // Touch pointerdown does not activate audio (iOS needs pointerup/touchend/click), so keep
+  // trying on every gesture until the context is actually running.
+  const unlockEvents = ['pointerup', 'touchend', 'click'] as const;
+  const tryUnlock = (): void => {
+    sfx.unlock();
+    if (sfx.ready) for (const e of unlockEvents) window.removeEventListener(e, tryUnlock);
+  };
+  for (const e of unlockEvents) window.addEventListener(e, tryUnlock);
 
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const tokens = localTokenStore();
@@ -110,6 +111,7 @@ export function startApp(root: HTMLElement): void {
       for (const name of sfxFor(event, team ?? 0)) sfx.play(name);
     }
     if (screenOf(state, replaced) === 'table') sfx.startAmbience();
+    else sfx.stopAmbience();
   }
 
   function render(): void {

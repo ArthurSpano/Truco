@@ -135,4 +135,24 @@ describe('createSfx', () => {
     sfx.setMuted(false);
     expect(ctx.createBufferSource).toHaveBeenCalledTimes(2);
   });
+
+  it('resumes a suspended context on every unlock', () => {
+    const ctx = fakeCtx();
+    ctx.state = 'suspended';
+    const sfx = createSfx(fakeStorage(), () => ctx as never);
+    sfx.unlock();
+    sfx.unlock();
+    expect(ctx.resume.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(sfx.ready).toBe(false);
+  });
+
+  it('stopAmbience stops the murmur', () => {
+    const ctx = fakeCtx();
+    const sfx = createSfx(fakeStorage(), () => ctx as never);
+    sfx.unlock();
+    sfx.startAmbience();
+    sfx.stopAmbience();
+    sfx.unlock();
+    expect(ctx.createBufferSource).toHaveBeenCalledTimes(1);
+  });
 });

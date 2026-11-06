@@ -6,6 +6,9 @@ export interface Sfx {
   play(name: SfxName): void;
   /** Starts the looping crowd murmur (once); silent while muted. */
   startAmbience(): void;
+  stopAmbience(): void;
+  /** True once the context exists and is running (gestures can stop retrying). */
+  readonly ready: boolean;
   setMuted(muted: boolean): void;
   readonly muted: boolean;
 }
@@ -13,8 +16,10 @@ export interface Sfx {
 const STORAGE_KEY = 'truco.muted';
 
 function defaultFactory(): AudioContext {
-  if (typeof AudioContext === 'undefined') throw new Error('AudioContext unavailable');
-  return new AudioContext();
+  const w = window as unknown as { webkitAudioContext?: typeof AudioContext };
+  const Ctor = typeof AudioContext !== 'undefined' ? AudioContext : w.webkitAudioContext;
+  if (!Ctor) throw new Error('AudioContext unavailable');
+  return new Ctor();
 }
 
 function browserStorage(): Pick<Storage, 'getItem' | 'setItem'> | undefined {
@@ -44,7 +49,7 @@ export function createSfx(
   let ctx: AudioContext | null = null;
   let noise: AudioBuffer | null = null;
   let wantAmbience = false;
-  let ambience: AudioBufferSourceNode | null = null;
+  let ambience: { src: AudioBufferSourceNode; lfo: OscillatorNode } | null = null;
 
   function context(): AudioContext | null {
     if (muted || !armed || broken) return null;
@@ -56,7 +61,11 @@ export function createSfx(
         return null;
       }
     }
-    if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
+    // 'interrupted' is iOS Safari's suspended-by-system state.
+    const state: string = ctx.state;
+    if (state === 'suspended' || state === 'interrupted') {
+      void Promise.resolve(ctx.resume()).catch(() => undefined);
+    }
     return ctx;
   }
 
@@ -103,13 +112,16 @@ export function createSfx(
   function syncAmbience(): void {
     if (muted || !wantAmbience) {
       if (ambience) {
-        try {
-          ambience.stop();
-        } catch {
-          // already stopped
-        }
-        ambience.disconnect();
+        const { src, lfo } = ambience;
         ambience = null;
+        for (const node of [src, lfo]) {
+          try {
+            node.stop();
+          } catch {
+            // already stopped
+          }
+          node.disconnect();
+        }
       }
       return;
     }
@@ -134,17 +146,15 @@ export function createSfx(
     lfo.start();
     src.connect(filter).connect(gain).connect(c.destination);
     src.start();
-    const stop = src.stop.bind(src);
-    src.stop = (when?: number): void => {
-      stop(when);
-      lfo.stop();
-    };
-    ambience = src;
+    ambience = { src, lfo };
   }
 
   return {
     get muted() {
       return muted;
+    },
+    get ready() {
+      return ctx !== null && ctx.state === 'running';
     },
     unlock() {
       armed = true;
@@ -180,6 +190,10 @@ export function createSfx(
           });
           break;
       }
+    },
+    stopAmbience() {
+      wantAmbience = false;
+      syncAmbience();
     },
     startAmbience() {
       wantAmbience = true;
