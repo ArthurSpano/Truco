@@ -1,8 +1,9 @@
 import type { ClientMessage, RoomState } from '../../shared/protocol.js';
-import type { GameView } from '../../shared/types.js';
+import type { GameEvent, GameView } from '../../shared/types.js';
+import { createEventFeed } from '../state/eventFeed.js';
 import type { AppState } from '../state/reducer.js';
 import { BubbleLayer } from './bubbles.js';
-import { bubblesFor, newEvents } from './bubbleModel.js';
+import { bubblesFor } from './bubbleModel.js';
 import { el } from './dom.js';
 import { createHandStore } from './handFan.js';
 import type { SendLatch } from './hand.js';
@@ -24,6 +25,12 @@ export interface TableScreen extends ScreenView {
   anchorOf(seat: number): HTMLElement | null;
   /** Registers a callback fired after every rebuild; returns an unsubscribe function. */
   onRendered(cb: (view: GameView, ctx: RenderedContext) => void): () => void;
+  /**
+   * Registers a callback for newly arrived events (one shared cursor for bubbles, sfx,
+   * animations); returns an unsubscribe function. Events arrive BEFORE their burst's
+   * `game_state`, so this fires against the OLD DOM; `onRendered` fires against the new one.
+   */
+  onEvents(cb: (events: GameEvent[], state: AppState) => void): () => void;
   /**
    * Table-wide send latch: set by every intent sent from the table, cleared when a new view
    * arrives or a server error comes in. Action-bar buttons should check and set it too.
@@ -55,17 +62,24 @@ export function createTableScreen(deps: TableDeps): TableScreen {
     sceneHost.querySelector<HTMLElement>(`.chair[data-seat="${String(seat)}"]`);
   const ctx: RenderedContext = { fx, anchorOf };
   const bubbles = new BubbleLayer(fx, anchorOf);
-  // Initialised from the first state seen, so mounting or reconnecting never replays old events.
-  let lastSeq: number | null = null;
+  const eventListeners = new Set<(events: GameEvent[], state: AppState) => void>();
+  // Seeded from the first state seen, so mounting or reconnecting never replays old events.
+  const nextEvents = createEventFeed();
+  const onEvents: TableScreen['onEvents'] = (cb) => {
+    eventListeners.add(cb);
+    return () => {
+      eventListeners.delete(cb);
+    };
+  };
+  onEvents((events) => {
+    for (const b of bubblesFor(events)) bubbles.show(b);
+  });
 
   /** Runs on every state update (even ones that do not rebuild the table). */
   const feedEvents = (state: AppState): void => {
-    if (lastSeq === null) {
-      lastSeq = state.eventSeq;
-      return;
-    }
-    for (const b of bubblesFor(newEvents(state.events, state.eventSeq, lastSeq))) bubbles.show(b);
-    lastSeq = state.eventSeq;
+    const events = nextEvents(state);
+    if (events.length === 0) return;
+    for (const cb of [...eventListeners]) cb(events, state);
   };
 
   return {
@@ -73,6 +87,7 @@ export function createTableScreen(deps: TableDeps): TableScreen {
     fx,
     anchorOf,
     latch,
+    onEvents,
     onRendered(cb) {
       listeners.add(cb);
       return () => {
@@ -123,6 +138,7 @@ export function createTableScreen(deps: TableDeps): TableScreen {
     destroy() {
       bubbles.destroy();
       listeners.clear();
+      eventListeners.clear();
       element.replaceChildren();
     },
   };

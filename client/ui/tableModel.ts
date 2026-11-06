@@ -34,7 +34,6 @@ export interface TableModel {
   maoDeFerro: boolean;
   actions: GameActions;
   bar: ActionBarModel;
-  over: { won: boolean } | null;
   phase: HandPhase;
 }
 
@@ -48,7 +47,7 @@ export function tableModel(view: GameView, room: RoomState): TableModel {
     return {
       seat: p.seat,
       anchor: anchorFor(mode, relativeIndex(view.seat, p.seat, mode)),
-      name: info?.name ?? 'Vazio',
+      name: info?.name ?? 'Vazio', // display fallback for empty chairs
       team: p.team,
       mine: p.seat === view.seat,
       partner: isPartner(view.seat, p.seat),
@@ -85,8 +84,7 @@ export function tableModel(view: GameView, room: RoomState): TableModel {
     lastTrick: view.trick.length === 0 && finished ? placed(finished.cards) : [],
     maoDeFerro: view.maoDeFerro,
     actions: view.actions,
-    bar: actionBarModel(view, (s) => seats.find((p) => p.seat === s)?.name ?? 'Vazio'),
-    over: view.winner === null ? null : { won: view.winner === view.team },
+    bar: actionBarModel(view, (s) => room.players.find((r) => r.seat === s)?.name ?? null),
     phase: handPhase(view),
   };
 }

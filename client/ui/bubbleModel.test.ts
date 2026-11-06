@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEvent } from '../../shared/types.js';
-import { bubbleFor, bubblesFor, newEvents } from './bubbleModel.js';
+import { bubbleFor, bubblesFor } from './bubbleModel.js';
 
 const called = (seat: number, stake: number): GameEvent => ({ t: 'truco_called', seat, stake });
 const answered = (seat: number, answer: 'accept' | 'run' | 'raise', stake: number): GameEvent => ({
@@ -54,25 +54,5 @@ describe('bubblesFor', () => {
     ]);
     expect(out.map((b) => b.seat)).toEqual([1, 2]);
     expect(out.map((b) => b.text)).toEqual(['TRUCO!', 'SEIS!']);
-  });
-});
-
-describe('newEvents', () => {
-  const evs = (n: number): GameEvent[] => Array.from({ length: n }, (_, i) => called(i, 3));
-  it('first burst of 3', () => {
-    expect(newEvents(evs(3), 3, 0)).toHaveLength(3);
-  });
-  it('later smaller burst replaced the list', () => {
-    expect(newEvents(evs(2), 5, 3)).toHaveLength(2);
-  });
-  it('burst of 1 after burst of 3', () => {
-    const list = [called(9, 6)];
-    expect(newEvents(list, 4, 3)).toEqual(list);
-  });
-  it('missed a whole burst: takes all, no negative slice', () => {
-    expect(newEvents(evs(2), 10, 3)).toHaveLength(2);
-  });
-  it('nothing new', () => {
-    expect(newEvents(evs(3), 3, 3)).toEqual([]);
   });
 });

@@ -11,6 +11,8 @@ export function renderActionBar(
   model: ActionBarModel,
   send: (m: ClientMessage) => void,
   latch: SendLatch = { pending: false },
+  /** Phase note (mão de onze / ferro); those phases never have buttons, so it sits in the bar. */
+  note: HTMLElement | null = null,
 ): HTMLElement {
   const bar = el('div', 'action-bar');
   if (model.banner) {
@@ -32,6 +34,7 @@ export function renderActionBar(
     else b.append(el('span', 'action-small', text[0]), el('span', 'action-big', text[1]));
     b.type = 'button';
     if (aria) b.setAttribute('aria-label', aria);
+    if (latch.pending) b.setAttribute('aria-disabled', 'true');
     buttons.push(b);
     b.addEventListener('click', () => {
       if (latch.pending) return;
@@ -56,5 +59,6 @@ export function renderActionBar(
   }
   if (row.childElementCount > 0) bar.append(row);
   if (model.waiting) bar.append(el('p', 'truco-waiting', model.waiting));
+  if (note) bar.append(note);
   return bar;
 }

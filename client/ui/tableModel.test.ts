@@ -94,12 +94,6 @@ describe('tableModel', () => {
     expect(tableModel(makeView(2, 0), makeRoom(2)).pips).toEqual(['pending', 'pending', 'pending']);
   });
 
-  it('reports match over from the viewer perspective', () => {
-    expect(tableModel(makeView(2, 1, { winner: 1 }), makeRoom(2)).over).toEqual({ won: true });
-    expect(tableModel(makeView(2, 1, { winner: 0 }), makeRoom(2)).over).toEqual({ won: false });
-    expect(tableModel(makeView(2, 1), makeRoom(2)).over).toBeNull();
-  });
-
   it('names a seat without a player Vazio', () => {
     const m = tableModel(makeView(4, 0), makeRoom(4, [2]));
     const empty = m.seats.find((s) => s.seat === 2);

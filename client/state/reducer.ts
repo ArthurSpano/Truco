@@ -18,9 +18,14 @@ export interface AppState {
    * so consumers keep a `lastSeq` and take `events.slice(events.length - (eventSeq - lastSeq))`.
    */
   eventSeq: number;
+  /** Latest chat entries only (pruned to `CHAT_KEEP`); consume via `chatSeq`. */
   chat: { seat: number; phraseId: PhraseId; at: number }[];
+  /** Total chat messages received since reset (monotonic), like `eventSeq`. */
+  chatSeq: number;
   error: { code: ErrorCode; text: string } | null;
 }
+
+const CHAT_KEEP = 30;
 
 export type Action =
   | { kind: 'server'; msg: ServerMessage; now: number }
@@ -39,6 +44,7 @@ export function initialState(): AppState {
     eventsStale: false,
     eventSeq: 0,
     chat: [],
+    chatSeq: 0,
     error: null,
   };
 }
@@ -71,7 +77,10 @@ export function reduce(state: AppState, action: Action): AppState {
         case 'chat':
           return {
             ...state,
-            chat: [...state.chat, { seat: msg.seat, phraseId: msg.phraseId, at: action.now }],
+            chat: [...state.chat, { seat: msg.seat, phraseId: msg.phraseId, at: action.now }].slice(
+              -CHAT_KEEP,
+            ),
+            chatSeq: state.chatSeq + 1,
           };
         case 'error':
           // A rejected rejoin means the old session is gone: drop any stale room.
@@ -85,6 +94,7 @@ export function reduce(state: AppState, action: Action): AppState {
               events: [],
               eventsStale: false,
               chat: [],
+              chatSeq: 0,
               error: { code: msg.code, text: errorText(msg.code) },
             };
           }

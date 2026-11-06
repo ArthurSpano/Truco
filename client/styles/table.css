@@ -370,7 +370,7 @@ body:has(#app.table-mode) {
 }
 
 /* Short phones: drop the neon sign and move the top played card down, clear of the top hand. */
-@media (max-height: 620px) {
+@media (max-height: 700px) {
   #app.table-mode .scene-sign {
     display: none;
   }
@@ -534,19 +534,8 @@ body:has(#app.table-mode) {
 
 .phase-wait,
 .ferro-banner {
-  position: absolute;
-  top: 1.9rem;
-  left: 50%;
-  z-index: 14;
-  max-width: 92%;
   margin: 0;
-  padding: 3px 0.8rem;
-  transform: translateX(-50%);
-  border-radius: 8px;
-  background: rgb(20 10 4 / 0.85);
-  color: var(--amber-glow);
-  font-size: 0.8rem;
-  font-weight: 800;
+  color: var(--muted);
+  font-style: italic;
   text-align: center;
-  pointer-events: none;
 }

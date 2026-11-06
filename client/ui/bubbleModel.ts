@@ -34,18 +34,3 @@ export function bubblesFor(events: readonly GameEvent[]): Bubble[] {
   }
   return out;
 }
-
-/**
- * The events received since `lastSeq`. `events` holds the latest burst only (it is replaced when
- * a new burst starts), so take the tail of length `eventSeq - lastSeq`, or all of it if more
- * than that were missed.
- */
-export function newEvents(
-  events: readonly GameEvent[],
-  eventSeq: number,
-  lastSeq: number,
-): GameEvent[] {
-  const fresh = eventSeq - lastSeq;
-  if (fresh <= 0) return [];
-  return events.slice(Math.max(0, events.length - fresh));
-}

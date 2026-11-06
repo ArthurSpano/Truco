@@ -42,6 +42,7 @@ export function renderMaoDeOnze(
   const add = (text: string, cls: string, play: boolean): void => {
     const b = el('button', `btn ${cls}`, text);
     b.type = 'button';
+    if (latch.pending) b.setAttribute('aria-disabled', 'true');
     buttons.push(b);
     b.addEventListener('click', () => {
       if (latch.pending) return;
@@ -54,6 +55,10 @@ export function renderMaoDeOnze(
   add('Jogar (vale 3)', 'primary', true);
   add('Correr (eles ganham 1)', 'run', false);
   overlay.append(row);
+  // Focus the primary button once the overlay is in the document.
+  queueMicrotask(() => {
+    row.querySelector<HTMLButtonElement>('button.primary')?.focus();
+  });
   return overlay;
 }
 

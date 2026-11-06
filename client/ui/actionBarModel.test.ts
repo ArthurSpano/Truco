@@ -38,7 +38,7 @@ function makeView(patch: Partial<GameView> = {}, actions: Partial<GameActions> =
   };
 }
 
-const names = (seat: number): string => ['Ana', 'Beto', 'Caio', 'Duda'][seat] ?? 'Vazio';
+const names = (seat: number): string | null => ['Ana', 'Beto', 'Caio', 'Duda'][seat] ?? null;
 
 describe('stakeName', () => {
   it('names the ladder steps', () => {

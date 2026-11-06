@@ -125,6 +125,15 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
   }
   tableArea.append(renderCentre(model));
 
+  const phase = model.phase;
+  const me = model.seats.find((s) => s.mine);
+  // Truco is barred and no answer is pending in these phases, so the bar is free for the note.
+  const phaseNote =
+    phase.kind === 'mao_de_ferro'
+      ? renderMaoDeFerroBanner()
+      : phase.kind === 'mao_de_onze_wait'
+        ? renderMaoDeOnzeWait()
+        : null;
   root.append(
     renderActionBar(
       model.bar,
@@ -132,13 +141,9 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
         handler.send(m);
       },
       handler.latch,
+      phaseNote,
     ),
   );
-
-  const phase = model.phase;
-  const me = model.seats.find((s) => s.mine);
-  if (phase.kind === 'mao_de_ferro') root.append(renderMaoDeFerroBanner());
-  if (phase.kind === 'mao_de_onze_wait') root.append(renderMaoDeOnzeWait());
 
   // The hand row keeps its place in every phase: face-up cards, or backs in mão de ferro.
   if (phase.kind === 'mao_de_ferro' && me) {

@@ -23,7 +23,10 @@ export function stakeName(stake: number): string {
 }
 
 /** Pure view -> action bar model. Legality comes only from `view.actions`. */
-export function actionBarModel(view: GameView, names: (seat: number) => string): ActionBarModel {
+export function actionBarModel(
+  view: GameView,
+  names: (seat: number) => string | null,
+): ActionBarModel {
   const { actions, truco } = view;
   const raise = actions.respond?.raise ?? null;
   return {
@@ -44,8 +47,6 @@ export function actionBarModel(view: GameView, names: (seat: number) => string):
         }
       : null,
     waiting: truco && truco.team === view.team && !actions.respond ? 'Aguardando resposta…' : null,
-    banner: truco
-      ? `${names(truco.caller) === 'Vazio' ? 'Alguém' : names(truco.caller)} pediu ${stakeName(truco.stake)}!`
-      : null,
+    banner: truco ? `${names(truco.caller) ?? 'Alguém'} pediu ${stakeName(truco.stake)}!` : null,
   };
 }
