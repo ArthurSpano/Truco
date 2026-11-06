@@ -143,3 +143,11 @@ describe('tableModel', () => {
     expect(tableModel(makeView(2, 0), makeRoom(2)).lastTrick).toEqual([]);
   });
 });
+
+describe('tableModel.bar', () => {
+  it('names the caller and falls back to a neutral name', () => {
+    const view = makeView(4, 0, { truco: { caller: 1, team: 1, stake: 3 } });
+    expect(tableModel(view, makeRoom(4)).bar.banner).toBe('Jog1 pediu TRUCO!');
+    expect(tableModel(view, makeRoom(4, [1])).bar.banner).toBe('Alguém pediu TRUCO!');
+  });
+});

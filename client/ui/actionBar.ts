@@ -20,13 +20,17 @@ export function renderActionBar(
   }
   const row = el('div', 'action-row');
 
-  const button = (text: string, cls: string, msg: ClientMessage): void => {
-    const b = el('button', `btn action-btn ${cls}`, text);
+  const buttons: HTMLButtonElement[] = [];
+  const button = (text: string | [string, string], cls: string, msg: ClientMessage): void => {
+    const b = el('button', `btn action-btn ${cls}`);
+    if (typeof text === 'string') b.textContent = text;
+    else b.append(el('span', 'action-small', text[0]), el('span', 'action-big', text[1]));
     b.type = 'button';
+    buttons.push(b);
     b.addEventListener('click', () => {
       if (latch.pending) return;
       latch.pending = true;
-      b.setAttribute('aria-disabled', 'true');
+      for (const other of buttons) other.setAttribute('aria-disabled', 'true');
       send(msg);
     });
     row.append(b);
@@ -41,6 +45,5 @@ export function renderActionBar(
   }
   if (row.childElementCount > 0) bar.append(row);
   if (model.waiting) bar.append(el('p', 'truco-waiting', model.waiting));
-  if (!bar.hasChildNodes()) bar.hidden = true;
   return bar;
 }

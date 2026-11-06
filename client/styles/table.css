@@ -379,41 +379,54 @@ body:has(#app.table-mode) {
   }
 }
 
-/* Truco action bar: between the table and the hand. */
+/* Truco action bar: a fixed-height row between the table and the hand, always present,
+   so the table area never resizes. The banner floats over the bottom of the table area. */
 .action-bar {
+  position: relative;
   flex: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0 0.75rem 0.35rem;
-}
-
-.action-bar[hidden] {
-  display: none;
+  justify-content: center;
+  height: 56px;
+  padding: 0 16px;
 }
 
 .action-row {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   width: 100%;
+  min-width: 0;
 }
 
 .action-btn {
   flex: 1 1 0;
-  min-width: 5.5rem;
-  min-height: 52px;
-  font-size: 1.25rem;
-  letter-spacing: 0.04em;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  font-size: 1.05rem;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
   touch-action: manipulation;
+}
+
+.action-small {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.action-big {
+  font-size: 1.1rem;
 }
 
 .action-btn.call {
   background: var(--red);
   color: #fff;
+  font-size: 1.4rem;
   text-shadow: 0 2px 0 rgb(0 0 0 / 0.4);
 }
 
@@ -428,7 +441,6 @@ body:has(#app.table-mode) {
 .action-btn.raise {
   background: var(--amber);
   color: var(--ink);
-  font-size: 1rem;
 }
 
 .action-btn[aria-disabled='true'] {
@@ -436,11 +448,18 @@ body:has(#app.table-mode) {
 }
 
 .truco-banner {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  z-index: 12;
   margin: 0;
+  text-align: center;
   font-size: 1.15rem;
   font-weight: 900;
   color: var(--amber-glow);
-  text-shadow: 0 2px 0 rgb(0 0 0 / 0.5);
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.7);
+  pointer-events: none;
 }
 
 .truco-waiting {
