@@ -1,6 +1,13 @@
-/* Cards are sized only by --card-w, so hand, table and opponents share one renderer. */
-.card {
+/*
+ * Cards are sized only by --card-w, so hand, table and opponents share one renderer.
+ * The default lives on :root; a container resizes its cards by setting --card-w on
+ * itself (e.g. `.hand { --card-w: 90px }`). Never redeclare it on `.card`.
+ */
+:root {
   --card-w: clamp(56px, 18vw, 84px);
+}
+
+.card {
   position: relative;
   display: inline-block;
   flex: none;

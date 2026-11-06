@@ -35,7 +35,7 @@ export function renderCard(
   if (opts.manilha) root.classList.add('manilha');
   if (opts.selected) root.classList.add('selected');
   root.dataset.cardId = card.id;
-  root.setAttribute('role', 'img');
+  // No role here: the hand wraps cards in buttons, which supply the role; the label stays.
   root.setAttribute('aria-label', cardAriaLabel(card));
 
   const corner = el('div', 'card-corner');
