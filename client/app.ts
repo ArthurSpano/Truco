@@ -2,6 +2,10 @@ import type { ClientMessage } from '../shared/protocol.js';
 import type { ServerInfo } from '../shared/types.js';
 import { GameSocket } from './net/socket.js';
 import { localTokenStore } from './net/tokenStore.js';
+import { createSfx } from './audio/sfx.js';
+import { sfxFor } from './audio/sfxModel.js';
+import { createEventFeed } from './state/eventFeed.js';
+import { renderMuteButton } from './ui/muteButton.js';
 import { initialState, reduce } from './state/reducer.js';
 import type { Action, AppState } from './state/reducer.js';
 import { createHome } from './ui/home.js';
@@ -45,7 +49,16 @@ export function startApp(root: HTMLElement): void {
   banner.setAttribute('role', 'status');
   banner.hidden = true;
   const main = el('div', 'screen');
-  root.replaceChildren(header, banner, main);
+  const sfx = createSfx();
+  const soundFeed = createEventFeed();
+  root.replaceChildren(header, banner, main, renderMuteButton(sfx));
+  window.addEventListener(
+    'pointerdown',
+    () => {
+      sfx.unlock();
+    },
+    { once: true },
+  );
 
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const tokens = localTokenStore();
@@ -84,7 +97,19 @@ export function startApp(root: HTMLElement): void {
 
   function dispatch(action: Action): void {
     state = reduce(state, action);
+    playSounds();
     render();
+  }
+
+  /** Plays a sound for each event that arrived with this state change (feed seeds on first call). */
+  function playSounds(): void {
+    const fresh = soundFeed(state);
+    const team = state.view?.team;
+    for (const event of fresh) {
+      if (event.t === 'match_won' && team === undefined) continue;
+      for (const name of sfxFor(event, team ?? 0)) sfx.play(name);
+    }
+    if (screenOf(state, replaced) === 'table') sfx.startAmbience();
   }
 
   function render(): void {

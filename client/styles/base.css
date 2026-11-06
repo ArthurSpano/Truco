@@ -346,3 +346,20 @@ h2 {
   font-size: 0.8rem;
   font-weight: 700;
 }
+
+.mute-btn {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 1.3rem;
+  line-height: 1;
+  border: 1px solid rgb(255 244 214 / 0.35);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff4d6;
+  touch-action: manipulation;
+}
