@@ -39,27 +39,36 @@
   position: absolute;
   inset: 22% 22%;
   z-index: 1;
-  --card-w: 40px;
+  --card-w: 32px;
   pointer-events: none;
 }
 
-.centre-info {
-  position: absolute;
-  top: 0;
-  left: 0;
+/* Vira, manilha, value and pips live above the table so they never sit on a played card. */
+.info-strip {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  font-size: 0.65rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  align-self: center;
+  max-width: 100%;
+  padding: 2px 0.5rem;
+  --card-w: 28px;
+  font-size: 0.7rem;
   font-weight: 800;
-  --card-w: 30px;
+}
+
+.info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  max-width: 11rem;
 }
 
 .vira {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 4px;
   color: var(--cream);
   text-shadow: 0 1px 2px #000;
 }
@@ -71,12 +80,21 @@
   color: var(--ink);
 }
 
-.value-badge {
+.value-badge,
+.ferro-mark {
   padding: 1px 6px;
   border-radius: 6px;
   background: var(--red);
   color: #fff;
-  white-space: nowrap;
+}
+
+.ferro-mark {
+  background: #222;
+}
+
+.last-trick {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .played {
@@ -121,9 +139,6 @@
 }
 
 .pips {
-  position: absolute;
-  right: 0;
-  bottom: 0;
   display: flex;
   gap: 4px;
 }
@@ -148,7 +163,6 @@
 /* Opponents' hands: small backs fanned just inside their chair, towards the table. */
 .opp-hand {
   --card-w: 26px;
-  --angle: 0deg;
   position: absolute;
   z-index: 1;
   display: flex;
@@ -183,10 +197,6 @@
 .opp-hand.anchor-bottom-right {
   margin-left: -34px;
 }
-.opp-hand.anchor-bottom-left,
-.opp-hand.anchor-bottom-right {
-  margin-top: 0;
-}
 .opp-hand.anchor-top-left,
 .opp-hand.anchor-top-right {
   margin-top: 30px;
@@ -218,4 +228,40 @@
 
 .match-over .btn {
   min-height: 44px;
+}
+
+/* Table mode: full-bleed, exactly one viewport tall, no page scroll. The scene applies the safe-area insets once. */
+body:has(#app.table-mode) {
+  overflow: hidden;
+}
+
+#app.table-mode {
+  display: block;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+#app.table-mode .banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+
+#app.table-mode .screen,
+#app.table-mode .table-screen {
+  display: block;
+  gap: 0;
+}
+
+#app.table-mode .scene {
+  box-sizing: border-box;
+  height: 100dvh;
+  min-height: 0;
+}
+
+#app.table-mode .table-area {
+  min-height: 0;
 }

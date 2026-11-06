@@ -127,4 +127,19 @@ describe('tableModel', () => {
     expect(m.manilha).toBe('4');
     expect(m.vira.id).toBe('3h');
   });
+
+  it('keeps the last finished trick visible until the next card is played', () => {
+    const cards = [
+      { seat: 0, faceDown: false as const, card: card('7d', '7', 'diamonds') },
+      { seat: 1, faceDown: true as const },
+    ];
+    const done = makeView(2, 0, { tricks: [{ cards, winner: 0 }] });
+    const m = tableModel(done, makeRoom(2));
+    expect(m.trick).toEqual([]);
+    expect(m.lastTrick.map((t) => t.anchor)).toEqual(['bottom', 'top']);
+    expect(m.lastTrick[1]?.card.faceDown).toBe(true);
+    const next = makeView(2, 0, { tricks: [{ cards, winner: 0 }], trick: [cards[0] as never] });
+    expect(tableModel(next, makeRoom(2)).lastTrick).toEqual([]);
+    expect(tableModel(makeView(2, 0), makeRoom(2)).lastTrick).toEqual([]);
+  });
 });

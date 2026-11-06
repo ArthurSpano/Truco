@@ -1,5 +1,5 @@
-import type { ClientMessage } from '../shared/protocol.js';
-import type { ServerInfo } from '../shared/types.js';
+import type { ClientMessage, RoomState } from '../shared/protocol.js';
+import type { GameView, ServerInfo } from '../shared/types.js';
 import { GameSocket } from './net/socket.js';
 import { localTokenStore } from './net/tokenStore.js';
 import { initialState, reduce } from './state/reducer.js';
@@ -128,6 +128,12 @@ export function startApp(root: HTMLElement): void {
           seated ? 'Distribuindo as cartas…' : 'Você está assistindo — esta mesa já começou.',
         ),
       );
+      if (!seated) {
+        const exit = el('button', 'btn', 'Voltar ao início');
+        exit.type = 'button';
+        exit.addEventListener('click', leave);
+        box.append(exit);
+      }
       current = staticScreen(box);
       main.replaceChildren(box);
     } else {
@@ -135,6 +141,7 @@ export function startApp(root: HTMLElement): void {
       current.update(state);
     }
     header.hidden = next === 'table';
+    root.classList.toggle('table-mode', next === 'table');
     screen = next;
   }
 
@@ -142,8 +149,8 @@ export function startApp(root: HTMLElement): void {
   function createTableScreen(): ScreenView {
     const element = el('div', 'table-screen');
     main.replaceChildren(element);
-    let shownView: unknown = null;
-    let shownRoom: unknown = null;
+    let shownView: GameView | null = null;
+    let shownRoom: RoomState | null = null;
     return {
       element,
       update(next) {

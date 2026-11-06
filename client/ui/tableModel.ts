@@ -27,6 +27,8 @@ export interface TableModel {
   manilha: Rank;
   pips: Pip[];
   trick: { anchor: Anchor; card: TableCard }[];
+  /** Cards of the last finished trick while the next one is empty, so its result stays visible. */
+  lastTrick: { anchor: Anchor; card: TableCard }[];
   maoDeFerro: boolean;
   over: { won: boolean } | null;
 }
@@ -58,6 +60,13 @@ export function tableModel(view: GameView, room: RoomState): TableModel {
   });
   while (pips.length < PIP_COUNT) pips.push('pending');
 
+  const placed = (cards: readonly TableCard[]): { anchor: Anchor; card: TableCard }[] =>
+    cards.map((card) => ({
+      anchor: anchorFor(mode, relativeIndex(view.seat, card.seat, mode)),
+      card,
+    }));
+  const finished = view.tricks[view.tricks.length - 1];
+
   const theirs = view.team === 0 ? 1 : 0;
   return {
     seats,
@@ -67,10 +76,8 @@ export function tableModel(view: GameView, room: RoomState): TableModel {
     vira: view.vira,
     manilha: view.manilha,
     pips,
-    trick: view.trick.map((card) => ({
-      anchor: anchorFor(mode, relativeIndex(view.seat, card.seat, mode)),
-      card,
-    })),
+    trick: placed(view.trick),
+    lastTrick: view.trick.length === 0 && finished ? placed(finished.cards) : [],
     maoDeFerro: view.maoDeFerro,
     over: view.winner === null ? null : { won: view.winner === view.team },
   };

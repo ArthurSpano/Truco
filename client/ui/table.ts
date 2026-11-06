@@ -1,5 +1,5 @@
 import type { CardId } from '../../shared/types.js';
-import { renderCardBack, renderCard, renderTableCard } from './card.js';
+import { renderCardBack, renderCard, renderTableCard, rankLabel } from './card.js';
 import { el } from './dom.js';
 import { placeAtAnchor, renderChair, renderScene } from './scene.js';
 import type { Pip, SeatModel, TableModel } from './tableModel.js';
@@ -19,7 +19,6 @@ const PIP_LABELS: Record<Pip, string> = {
 
 function renderScoreboard(model: TableModel): HTMLElement {
   const board = el('div', 'scoreboard');
-  board.setAttribute('aria-label', `Nós ${model.us} contra ${model.them} Eles`);
   const us = el('span', 'score score-us');
   us.append(el('span', 'score-label', 'Nós'), el('strong', 'score-num', String(model.us)));
   const them = el('span', 'score score-them');
@@ -54,29 +53,33 @@ function renderOpponentHand(seat: SeatModel): HTMLElement {
   return fan;
 }
 
-function renderCentre(model: TableModel): HTMLElement {
-  const centre = el('div', 'table-centre');
-
-  const info = el('div', 'centre-info');
+/** Vira, manilha, hand value and trick pips: a compact strip above the table, off the card paths. */
+function renderInfoStrip(model: TableModel): HTMLElement {
+  const strip = el('div', 'info-strip');
   const vira = el('div', 'vira');
   vira.append(el('span', 'vira-label', 'Vira'), renderCard(model.vira));
-  const manilha = el('span', 'manilha-mark', `Manilha: ${model.manilha}`);
-  manilha.classList.add('manilha');
-  const badge = el(
-    'span',
-    'value-badge',
-    model.maoDeFerro ? `Mão de ferro · Valendo ${model.value}` : `Valendo ${model.value}`,
-  );
-  info.append(vira, manilha, badge);
+  const manilha = el('span', 'manilha-mark', `Manilha: ${rankLabel(model.manilha)}`);
+  const badge = el('span', 'value-badge', `Valendo ${model.value}`);
+  const tags = el('div', 'info-tags');
+  tags.append(manilha, badge);
+  if (model.maoDeFerro) tags.append(el('span', 'ferro-mark', 'Mão de ferro'));
+  strip.append(vira, tags, renderPips(model.pips));
+  return strip;
+}
 
+function renderCentre(model: TableModel): HTMLElement {
+  const centre = el('div', 'table-centre');
   const played = el('div', 'played');
-  for (const { anchor, card } of model.trick) {
-    const slot = el('div', `played-slot anchor-${anchor}`);
-    slot.append(renderTableCard(card, model.manilha));
-    played.append(slot);
-  }
-
-  centre.append(info, played, renderPips(model.pips));
+  const add = (list: TableModel['trick'], extra: string): void => {
+    for (const { anchor, card } of list) {
+      const slot = el('div', `played-slot anchor-${anchor}${extra}`);
+      slot.append(renderTableCard(card, model.manilha));
+      played.append(slot);
+    }
+  };
+  add(model.lastTrick, ' last-trick');
+  add(model.trick, '');
+  centre.append(played);
   return centre;
 }
 
@@ -84,11 +87,18 @@ function renderOver(won: boolean, onLeave: () => void): HTMLElement {
   const overlay = el('div', `match-over ${won ? 'won' : 'lost'}`);
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.append(el('h2', 'match-over-title', won ? 'Vitória!' : 'Derrota'));
+  overlay.setAttribute('aria-labelledby', 'match-over-title');
+  const title = el('h2', 'match-over-title', won ? 'Vitória!' : 'Derrota');
+  title.id = 'match-over-title';
+  overlay.append(title);
   const btn = el('button', 'btn primary', 'Voltar ao início');
   btn.type = 'button';
   btn.addEventListener('click', onLeave);
   overlay.append(btn);
+  // Focus once the overlay is in the document.
+  queueMicrotask(() => {
+    btn.focus();
+  });
   return overlay;
 }
 
@@ -96,7 +106,8 @@ function renderOver(won: boolean, onLeave: () => void): HTMLElement {
 export function renderTable(model: TableModel, handler: TableHandler): HTMLElement {
   const { root, tableArea } = renderScene();
   root.classList.add(`mode-${model.seats.length}`);
-  root.insertBefore(renderScoreboard(model), tableArea);
+  root.insertBefore(renderInfoStrip(model), tableArea);
+  root.insertBefore(renderScoreboard(model), root.querySelector('.info-strip'));
 
   for (const seat of model.seats) {
     tableArea.append(renderChair(seat.anchor, seat));
