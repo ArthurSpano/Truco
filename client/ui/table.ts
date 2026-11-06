@@ -1,4 +1,6 @@
+import type { ClientMessage } from '../../shared/protocol.js';
 import type { CardId } from '../../shared/types.js';
+import { renderActionBar } from './actionBar.js';
 import { renderCardBack, renderCard, renderTableCard, rankLabel } from './card.js';
 import { el } from './dom.js';
 import { renderHand } from './hand.js';
@@ -14,6 +16,8 @@ export interface TableHandler {
   latch: SendLatch;
   /** Last server error text (pt-BR), shown as a small line so a rejected play is not silent. */
   error: string | null;
+  /** Sends a truco intent (call or answer); the bar has already taken the latch. */
+  send(m: ClientMessage): void;
   onPlay(cardId: CardId, faceDown: boolean): void;
   /** Match-over overlay button: leave the room and go back to the start screen. */
   onLeave(): void;
@@ -114,7 +118,7 @@ function renderOver(won: boolean, onLeave: () => void): HTMLElement {
   return overlay;
 }
 
-/** Pure render of one snapshot; the action bar is added by a later task. */
+/** Pure render of one snapshot; the action bar sits between the table and the hand. */
 export function renderTable(model: TableModel, handler: TableHandler): HTMLElement {
   const { root, tableArea } = renderScene();
   root.classList.add(`mode-${model.seats.length}`);
@@ -131,6 +135,16 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
     if (!seat.mine) tableArea.append(renderOpponentHand(seat));
   }
   tableArea.append(renderCentre(model));
+
+  root.append(
+    renderActionBar(
+      model.bar,
+      (m) => {
+        handler.send(m);
+      },
+      handler.latch,
+    ),
+  );
 
   const mine = model.seats.find((s) => s.mine)?.cards;
   if (mine) {

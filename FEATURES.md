@@ -55,7 +55,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 ## 6. Truco flow UI
 
 - [ ] Speech bubbles (TRUCO!, SEIS!, NOVE!, DOZE!, Corre!, Aceito!)
-- [ ] Action bar: truco/raise button, Aceitar / Correr / Aumentar, face-down toggle
+- [x] Action bar: truco/raise button, Aceitar / Correr / Aumentar, face-down toggle (unverified visually; no browser)
 - [ ] Mão de onze and mão de ferro screens
 
 ## 7. Polish

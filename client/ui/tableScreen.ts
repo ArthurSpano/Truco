@@ -86,6 +86,9 @@ export function createTableScreen(deps: TableDeps): TableScreen {
           hand,
           latch,
           error: next.error?.text ?? null,
+          send: (m) => {
+            deps.send(m);
+          },
           onPlay: (cardId, faceDown) => {
             latch.pending = true;
             deps.send({ t: 'play_card', cardId, faceDown });

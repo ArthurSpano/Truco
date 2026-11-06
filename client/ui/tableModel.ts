@@ -1,5 +1,6 @@
 import type { RoomState } from '../../shared/protocol.js';
 import type { Card, GameActions, GameView, Rank, TableCard } from '../../shared/types.js';
+import { actionBarModel, type ActionBarModel } from './actionBarModel.js';
 import { anchorFor, isPartner, relativeIndex, type Anchor } from './layout.js';
 
 export type Pip = 'won' | 'lost' | 'tied' | 'pending';
@@ -31,6 +32,7 @@ export interface TableModel {
   lastTrick: { anchor: Anchor; card: TableCard }[];
   maoDeFerro: boolean;
   actions: GameActions;
+  bar: ActionBarModel;
   over: { won: boolean } | null;
 }
 
@@ -81,6 +83,7 @@ export function tableModel(view: GameView, room: RoomState): TableModel {
     lastTrick: view.trick.length === 0 && finished ? placed(finished.cards) : [],
     maoDeFerro: view.maoDeFerro,
     actions: view.actions,
+    bar: actionBarModel(view, (s) => seats.find((p) => p.seat === s)?.name ?? 'Vazio'),
     over: view.winner === null ? null : { won: view.winner === view.team },
   };
 }

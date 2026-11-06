@@ -378,3 +378,73 @@ body:has(#app.table-mode) {
     top: 26%;
   }
 }
+
+/* Truco action bar: between the table and the hand. */
+.action-bar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.75rem 0.35rem;
+}
+
+.action-bar[hidden] {
+  display: none;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.action-btn {
+  flex: 1 1 0;
+  min-width: 5.5rem;
+  min-height: 52px;
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  touch-action: manipulation;
+}
+
+.action-btn.call {
+  background: var(--red);
+  color: #fff;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.4);
+}
+
+.action-btn.accept {
+  background: var(--green);
+}
+
+.action-btn.run {
+  background: var(--wood);
+}
+
+.action-btn.raise {
+  background: var(--amber);
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.action-btn[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+.truco-banner {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--amber-glow);
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.5);
+}
+
+.truco-waiting {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}
