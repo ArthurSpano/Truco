@@ -107,4 +107,19 @@ describe('errorText', () => {
   it.each(codes)('has pt-BR text for %s', (code) => {
     expect(errorText(code).length).toBeGreaterThan(0);
   });
+
+  it('counts every event in eventSeq across bursts and resets it', () => {
+    const ev = (stake: number): ServerMessage => ({
+      t: 'event',
+      event: { t: 'truco_called', seat: 0, stake } as GameEvent,
+    });
+    let s = initialState();
+    expect(s.eventSeq).toBe(0);
+    for (const n of [3, 6, 9]) s = server(s, ev(n));
+    s = server(s, { t: 'game_state', view });
+    s = server(s, ev(12));
+    expect(s.eventSeq).toBe(4);
+    expect(s.events).toEqual([{ t: 'truco_called', seat: 0, stake: 12 }]);
+    expect(reduce(s, { kind: 'reset' }).eventSeq).toBe(0);
+  });
 });

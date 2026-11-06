@@ -341,12 +341,40 @@ body:has(#app.table-mode) {
 }
 
 .table-error {
-  align-self: center;
+  position: absolute;
+  top: 0.35rem;
+  left: 50%;
+  z-index: 15;
+  max-width: 90%;
   margin: 0;
-  padding: 1px 0.7rem;
+  padding: 2px 0.7rem;
+  transform: translateX(-50%);
   border-radius: 8px;
   background: var(--red);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 800;
+  pointer-events: none;
+}
+
+.scene-host {
+  display: block;
+}
+
+/* Persistent overlay for bubbles and animations; never replaced by a snapshot. */
+#app.table-mode .fx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* Short phones: drop the neon sign and move the top played card down, clear of the top hand. */
+@media (max-height: 620px) {
+  #app.table-mode .scene-sign {
+    display: none;
+  }
+  .played-slot.anchor-top {
+    top: 26%;
+  }
 }

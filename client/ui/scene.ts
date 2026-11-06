@@ -202,6 +202,7 @@ export function placeAtAnchor(node: HTMLElement, anchor: Anchor): void {
 }
 
 export interface ChairOptions {
+  seat: number;
   name: string;
   team: 0 | 1;
   mine: boolean;
@@ -211,6 +212,7 @@ export interface ChairOptions {
 
 export function renderChair(anchor: Anchor, opts: ChairOptions): HTMLElement {
   const chair = el('div', `chair anchor-${anchor} team-${opts.team}`);
+  chair.dataset.seat = String(opts.seat);
   if (opts.mine) chair.classList.add('mine');
   if (opts.active) chair.classList.add('turn');
   if (!opts.connected) chair.classList.add('away');

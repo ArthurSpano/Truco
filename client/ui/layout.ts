@@ -32,13 +32,13 @@ export function anchorFor(mode: GameMode, relative: number): Anchor {
 /**
  * Chair placement as percentages of the table area (portrait phone), plus the
  * rotation in degrees (clockwise, 0 = chair facing up) so it faces the centre.
- * Side chairs hug x of about 6 / 94, top about y 8, bottom about y 92.
+ * Side chairs hug x of about 7 / 93, top about y 8, bottom about y 92.
  */
 const POSITIONS: Record<Anchor, { x: number; y: number; angle: number }> = {
   bottom: { x: 50, y: 92, angle: 0 },
   top: { x: 50, y: 8, angle: 180 },
-  left: { x: 6, y: 50, angle: 90 },
-  right: { x: 94, y: 50, angle: 270 },
+  left: { x: 7, y: 50, angle: 90 },
+  right: { x: 93, y: 50, angle: 270 },
   'bottom-right': { x: 90, y: 74, angle: 315 },
   'top-right': { x: 90, y: 26, angle: 225 },
   'top-left': { x: 10, y: 26, angle: 135 },

@@ -62,5 +62,9 @@ export function renderTableCard(tc: TableCard, manilhaRank: Rank | null): HTMLEl
     back.setAttribute('aria-label', 'Carta encoberta');
     return back;
   }
-  return renderCard(tc.card, { manilha: manilhaRank !== null && tc.card.rank === manilhaRank });
+  const face = renderCard(tc.card, {
+    manilha: manilhaRank !== null && tc.card.rank === manilhaRank,
+  });
+  face.setAttribute('role', 'img'); // table cards are not wrapped in a button
+  return face;
 }

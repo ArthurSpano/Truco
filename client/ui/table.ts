@@ -2,6 +2,7 @@ import type { CardId } from '../../shared/types.js';
 import { renderCardBack, renderCard, renderTableCard, rankLabel } from './card.js';
 import { el } from './dom.js';
 import { renderHand } from './hand.js';
+import type { SendLatch } from './hand.js';
 import type { HandStore } from './handFan.js';
 import { placeAtAnchor, renderChair, renderScene } from './scene.js';
 import type { Pip, SeatModel, TableModel } from './tableModel.js';
@@ -9,6 +10,8 @@ import type { Pip, SeatModel, TableModel } from './tableModel.js';
 export interface TableHandler {
   /** Selection state; owned by the table screen so it survives rebuilds. */
   hand: HandStore;
+  /** One-play latch shared with every other intent sent from the table. */
+  latch: SendLatch;
   /** Last server error text (pt-BR), shown as a small line so a rejected play is not silent. */
   error: string | null;
   onPlay(cardId: CardId, faceDown: boolean): void;
@@ -63,7 +66,9 @@ function renderOpponentHand(seat: SeatModel): HTMLElement {
 function renderInfoStrip(model: TableModel): HTMLElement {
   const strip = el('div', 'info-strip');
   const vira = el('div', 'vira');
-  vira.append(el('span', 'vira-label', 'Vira'), renderCard(model.vira));
+  const viraCard = renderCard(model.vira);
+  viraCard.setAttribute('role', 'img');
+  vira.append(el('span', 'vira-label', 'Vira'), viraCard);
   const manilha = el('span', 'manilha-mark', `Manilha: ${rankLabel(model.manilha)}`);
   const badge = el('span', 'value-badge', `Valendo ${model.value}`);
   const tags = el('div', 'info-tags');
@@ -79,6 +84,7 @@ function renderCentre(model: TableModel): HTMLElement {
   const add = (list: TableModel['trick'], extra: string): void => {
     for (const { anchor, card } of list) {
       const slot = el('div', `played-slot anchor-${anchor}${extra}`);
+      slot.dataset.seat = String(card.seat);
       slot.append(renderTableCard(card, model.manilha));
       played.append(slot);
     }
@@ -116,7 +122,7 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
   if (handler.error) {
     const err = el('p', 'table-error', handler.error);
     err.setAttribute('role', 'alert');
-    root.insertBefore(err, tableArea);
+    root.append(err);
   }
   root.insertBefore(renderScoreboard(model), root.querySelector('.info-strip'));
 
@@ -137,6 +143,7 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
           handler.onPlay(id, down);
         },
         handler.hand,
+        handler.latch,
       ),
     );
   }

@@ -4,6 +4,11 @@ import { el } from './dom.js';
 import { createHandStore, fanLayout } from './handFan.js';
 import type { HandStore } from './handFan.js';
 
+/** One-play latch owned by the table screen, shared by every intent sent from the table. */
+export interface SendLatch {
+  pending: boolean;
+}
+
 /** Upward drag distance (px) that counts as "play this card". */
 const DRAG_PLAY_PX = 40;
 
@@ -19,6 +24,7 @@ export function renderHand(
   actions: GameActions,
   onPlay: (cardId: CardId, faceDown: boolean) => void,
   store: HandStore = createHandStore(),
+  latch: SendLatch = { pending: false },
 ): HTMLElement {
   store.dispatch({ kind: 'sync', cardIds: cards.map((c) => c.id), actions });
   const canAct = actions.play || actions.playFaceDown;
@@ -30,16 +36,14 @@ export function renderHand(
   const fan = el('div', 'hand-fan');
   root.append(fan);
 
-  // One latch per rebuild: the next snapshot rebuilds the hand, which re-arms it.
-  let sent = false;
   const buttons = new Map<string, HTMLButtonElement>();
 
   function tap(cardId: string): void {
-    if (!canAct || sent) return;
+    if (!canAct || latch.pending) return;
     const play = store.dispatch({ kind: 'tap', cardId });
     const card = play && cards.find((c) => c.id === play.cardId);
     if (play && card) {
-      sent = true;
+      latch.pending = true;
       onPlay(card.id, play.faceDown);
     }
     refresh();
@@ -53,7 +57,7 @@ export function renderHand(
       btn.setAttribute('aria-pressed', String(on));
       btn.classList.toggle('is-selected', on);
       btn.firstElementChild?.classList.toggle('selected', on);
-      if (!canAct || sent) btn.setAttribute('aria-disabled', 'true');
+      if (!canAct || latch.pending) btn.setAttribute('aria-disabled', 'true');
       else btn.removeAttribute('aria-disabled');
     }
     root.classList.toggle('face-down', faceDown);

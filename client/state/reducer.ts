@@ -13,6 +13,11 @@ export interface AppState {
   events: GameEvent[];
   /** True once a game_state closed the current event burst; the next event starts a new list. */
   eventsStale: boolean;
+  /**
+   * Total events received since reset (monotonic). `events` is replaced when a new burst starts,
+   * so consumers keep a `lastSeq` and take `events.slice(events.length - (eventSeq - lastSeq))`.
+   */
+  eventSeq: number;
   chat: { seat: number; phraseId: PhraseId; at: number }[];
   error: { code: ErrorCode; text: string } | null;
 }
@@ -32,6 +37,7 @@ export function initialState(): AppState {
     view: null,
     events: [],
     eventsStale: false,
+    eventSeq: 0,
     chat: [],
     error: null,
   };
@@ -60,6 +66,7 @@ export function reduce(state: AppState, action: Action): AppState {
             ...state,
             events: state.eventsStale ? [msg.event] : [...state.events, msg.event],
             eventsStale: false,
+            eventSeq: state.eventSeq + 1,
           };
         case 'chat':
           return {

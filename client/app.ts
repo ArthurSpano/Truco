@@ -1,5 +1,5 @@
-import type { ClientMessage, RoomState } from '../shared/protocol.js';
-import type { GameView, ServerInfo } from '../shared/types.js';
+import type { ClientMessage } from '../shared/protocol.js';
+import type { ServerInfo } from '../shared/types.js';
 import { GameSocket } from './net/socket.js';
 import { localTokenStore } from './net/tokenStore.js';
 import { initialState, reduce } from './state/reducer.js';
@@ -9,9 +9,7 @@ import type { HomeView } from './ui/home.js';
 import { renderLobby } from './ui/lobby.js';
 import { el } from './ui/dom.js';
 import type { ScreenView } from './ui/screen.js';
-import { createHandStore } from './ui/handFan.js';
-import { renderTable } from './ui/table.js';
-import { tableModel } from './ui/tableModel.js';
+import { createTableScreen } from './ui/tableScreen.js';
 
 type Screen = 'home' | 'lobby' | 'table' | 'waiting' | 'replaced';
 
@@ -138,48 +136,16 @@ export function startApp(root: HTMLElement): void {
       current = staticScreen(box);
       main.replaceChildren(box);
     } else {
-      if (!current) current = createTableScreen();
+      if (!current) {
+        const table = createTableScreen({ send, leave });
+        current = table;
+        main.replaceChildren(table.element);
+      }
       current.update(state);
     }
     header.hidden = next === 'table';
     root.classList.toggle('table-mode', next === 'table');
     screen = next;
-  }
-
-  /** Table screen: rebuilt from each new snapshot, nothing outside its element to release yet. */
-  function createTableScreen(): ScreenView {
-    const element = el('div', 'table-screen');
-    main.replaceChildren(element);
-    let shownView: GameView | null = null;
-    let shownRoom: RoomState | null = null;
-    let shownError: AppState['error'] = null;
-    const hand = createHandStore();
-    return {
-      element,
-      update(next) {
-        if (!next.view || !next.room) return;
-        // A bare server `error` keeps the same view/room, so it must rebuild too: that re-arms
-        // the hand's one-play latch and shows the message.
-        if (next.view === shownView && next.room === shownRoom && next.error === shownError) return;
-        shownView = next.view;
-        shownRoom = next.room;
-        shownError = next.error;
-        const model = tableModel(next.view, next.room);
-        element.replaceChildren(
-          renderTable(model, {
-            hand,
-            error: next.error?.text ?? null,
-            onPlay: (cardId, faceDown) => {
-              send({ t: 'play_card', cardId, faceDown });
-            },
-            onLeave: leave,
-          }),
-        );
-      },
-      destroy() {
-        element.replaceChildren();
-      },
-    };
   }
 
   /** Keeps ?sala= in step with the room; only touches history when the code changes. */
