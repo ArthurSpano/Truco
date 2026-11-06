@@ -1,0 +1,221 @@
+/* Table: scoreboard, centre (vira, value, played cards, pips), opponents' card fans, match-over. */
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  align-self: center;
+  margin-bottom: 0.2rem;
+  padding: 0.2rem 0.9rem;
+  border-radius: 999px;
+  background: rgb(20 10 4 / 0.85);
+  color: var(--cream);
+  font-weight: 800;
+}
+
+.score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.score-label {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.score-num {
+  min-width: 1.4ch;
+  text-align: center;
+  font-size: 1.5rem;
+  color: var(--amber-glow);
+}
+
+.score-x {
+  opacity: 0.6;
+}
+
+.table-centre {
+  position: absolute;
+  inset: 22% 22%;
+  z-index: 1;
+  --card-w: 40px;
+  pointer-events: none;
+}
+
+.centre-info {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  --card-w: 30px;
+}
+
+.vira {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  color: var(--cream);
+  text-shadow: 0 1px 2px #000;
+}
+
+.manilha-mark {
+  padding: 0 5px;
+  border-radius: 6px;
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.value-badge {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--red);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.played {
+  position: absolute;
+  inset: 0;
+}
+
+.played-slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.played-slot.anchor-bottom {
+  top: 78%;
+}
+.played-slot.anchor-top {
+  top: 22%;
+}
+.played-slot.anchor-left {
+  left: 25%;
+}
+.played-slot.anchor-right {
+  left: 75%;
+}
+.played-slot.anchor-bottom-right {
+  left: 72%;
+  top: 68%;
+}
+.played-slot.anchor-top-right {
+  left: 72%;
+  top: 32%;
+}
+.played-slot.anchor-top-left {
+  left: 28%;
+  top: 32%;
+}
+.played-slot.anchor-bottom-left {
+  left: 28%;
+  top: 68%;
+}
+
+.pips {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 4px;
+}
+
+.pip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--cream);
+  background: transparent;
+}
+.pip.won {
+  background: #3fae5f;
+}
+.pip.lost {
+  background: var(--red);
+}
+.pip.tied {
+  background: #9a9a9a;
+}
+
+/* Opponents' hands: small backs fanned just inside their chair, towards the table. */
+.opp-hand {
+  --card-w: 26px;
+  --angle: 0deg;
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.opp-hand .card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateX(calc(var(--fan) * 9px))
+    rotate(calc(var(--fan) * 8deg));
+}
+
+.opp-hand.anchor-top {
+  margin-top: 40px;
+}
+.opp-hand.anchor-left {
+  margin-left: 36px;
+}
+.opp-hand.anchor-right {
+  margin-left: -36px;
+}
+.opp-hand.anchor-top-left,
+.opp-hand.anchor-bottom-left {
+  margin-left: 34px;
+}
+.opp-hand.anchor-top-right,
+.opp-hand.anchor-bottom-right {
+  margin-left: -34px;
+}
+.opp-hand.anchor-bottom-left,
+.opp-hand.anchor-bottom-right {
+  margin-top: 0;
+}
+.opp-hand.anchor-top-left,
+.opp-hand.anchor-top-right {
+  margin-top: 30px;
+}
+
+.match-over {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  background: rgb(20 10 4 / 0.82);
+}
+
+.match-over-title {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--amber-glow);
+  text-shadow: 0 0 14px var(--red);
+}
+
+.match-over.lost .match-over-title {
+  color: var(--cream);
+}
+
+.match-over .btn {
+  min-height: 44px;
+}

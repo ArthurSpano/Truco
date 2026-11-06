@@ -8,13 +8,22 @@ import { createHome } from './ui/home.js';
 import type { HomeView } from './ui/home.js';
 import { renderLobby } from './ui/lobby.js';
 import { el } from './ui/dom.js';
+import type { ScreenView } from './ui/screen.js';
+import { renderTable } from './ui/table.js';
+import { tableModel } from './ui/tableModel.js';
 
-type Screen = 'home' | 'lobby' | 'table' | 'replaced';
+type Screen = 'home' | 'lobby' | 'table' | 'waiting' | 'replaced';
 
 function screenOf(state: AppState, replaced: boolean): Screen {
   if (replaced) return 'replaced';
   if (!state.room) return 'home';
-  return state.room.status === 'lobby' ? 'lobby' : 'table';
+  if (state.room.status === 'lobby') return 'lobby';
+  return state.view ? 'table' : 'waiting';
+}
+
+/** A panel that never changes after it is built. */
+function staticScreen(element: HTMLElement): ScreenView {
+  return { element, update: () => undefined, destroy: () => undefined };
 }
 
 const REPLACED_TEXT = 'Esta sala foi aberta em outra aba/aparelho. Recarregue para voltar.';
@@ -28,6 +37,7 @@ export function startApp(root: HTMLElement): void {
   let urlCode: string | null = null;
   let screen: Screen | null = null;
   let home: HomeView | null = null;
+  let current: ScreenView | null = null;
 
   const header = el('header', 'sign');
   header.append(el('h1', 'neon', 'Truco de Boteco'));
@@ -83,30 +93,78 @@ export function startApp(root: HTMLElement): void {
     const next = screenOf(state, replaced);
     // Only follow a live room; a dropped room (bad_token) keeps the URL so an invite survives.
     if (state.room) syncUrl(state.room.code);
+    if (next !== screen) {
+      current?.destroy();
+      current = null;
+      home = null;
+    }
     if (next === 'replaced') {
-      if (screen !== 'replaced') {
-        home = null;
+      if (!current) {
         const box = el('section', 'panel');
         box.append(el('p', 'error', REPLACED_TEXT));
+        current = staticScreen(box);
         main.replaceChildren(box);
       }
     } else if (next === 'home') {
-      if (screen !== 'home' || !home) {
+      if (!home) {
         home = createHome(state, send);
+        current = home;
         main.replaceChildren(home.element);
       } else {
         home.update(state);
       }
     } else if (next === 'lobby') {
-      home = null;
-      main.replaceChildren(renderLobby(state, info, send, infoFailed, leave));
-    } else if (screen !== 'table') {
-      home = null;
+      // The lobby is re-rendered wholesale on every state change.
+      const element = renderLobby(state, info, send, infoFailed, leave);
+      current = staticScreen(element);
+      main.replaceChildren(element);
+    } else if (next === 'waiting') {
       const box = el('section', 'panel');
-      box.append(el('p', 'muted', 'Mesa em construção'));
+      const seated = state.room?.players.some((p) => p.id === state.room?.you && p.seat !== null);
+      box.append(
+        el(
+          'p',
+          'muted',
+          seated ? 'Distribuindo as cartas…' : 'Você está assistindo — esta mesa já começou.',
+        ),
+      );
+      current = staticScreen(box);
       main.replaceChildren(box);
+    } else {
+      if (!current) current = createTableScreen();
+      current.update(state);
     }
+    header.hidden = next === 'table';
     screen = next;
+  }
+
+  /** Table screen: rebuilt from each new snapshot, nothing outside its element to release yet. */
+  function createTableScreen(): ScreenView {
+    const element = el('div', 'table-screen');
+    main.replaceChildren(element);
+    let shownView: unknown = null;
+    let shownRoom: unknown = null;
+    return {
+      element,
+      update(next) {
+        if (!next.view || !next.room) return;
+        if (next.view === shownView && next.room === shownRoom) return;
+        shownView = next.view;
+        shownRoom = next.room;
+        const model = tableModel(next.view, next.room);
+        element.replaceChildren(
+          renderTable(model, {
+            onPlay: (cardId, faceDown) => {
+              send({ t: 'play_card', cardId, faceDown });
+            },
+            onLeave: leave,
+          }),
+        );
+      },
+      destroy() {
+        element.replaceChildren();
+      },
+    };
   }
 
   /** Keeps ?sala= in step with the room; only touches history when the code changes. */

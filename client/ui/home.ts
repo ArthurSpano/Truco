@@ -11,6 +11,7 @@ export interface HomeView {
   element: HTMLElement;
   /** Patches error text, connection hint and button states without touching typed input. */
   update(state: AppState): void;
+  destroy(): void;
 }
 
 /** Home screen: pick a name, then create a table or join one by code. */
@@ -140,5 +141,5 @@ export function createHome(initial: AppState, send: (m: ClientMessage) => void):
 
   root.append(nameLabel, modeGroup, createBtn, divider, joinRow, errorEl);
   update(state);
-  return { element: root, update };
+  return { element: root, update, destroy: () => undefined };
 }
