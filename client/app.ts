@@ -152,18 +152,23 @@ export function startApp(root: HTMLElement): void {
     main.replaceChildren(element);
     let shownView: GameView | null = null;
     let shownRoom: RoomState | null = null;
+    let shownError: AppState['error'] = null;
     const hand = createHandStore();
     return {
       element,
       update(next) {
         if (!next.view || !next.room) return;
-        if (next.view === shownView && next.room === shownRoom) return;
+        // A bare server `error` keeps the same view/room, so it must rebuild too: that re-arms
+        // the hand's one-play latch and shows the message.
+        if (next.view === shownView && next.room === shownRoom && next.error === shownError) return;
         shownView = next.view;
         shownRoom = next.room;
+        shownError = next.error;
         const model = tableModel(next.view, next.room);
         element.replaceChildren(
           renderTable(model, {
             hand,
+            error: next.error?.text ?? null,
             onPlay: (cardId, faceDown) => {
               send({ t: 'play_card', cardId, faceDown });
             },

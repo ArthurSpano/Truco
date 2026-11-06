@@ -339,3 +339,14 @@ body:has(#app.table-mode) {
   opacity: 0.6;
   outline: 2px dashed var(--amber-glow);
 }
+
+.table-error {
+  align-self: center;
+  margin: 0;
+  padding: 1px 0.7rem;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}

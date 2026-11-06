@@ -54,6 +54,7 @@ export function renderHand(
       btn.classList.toggle('is-selected', on);
       btn.firstElementChild?.classList.toggle('selected', on);
       if (!canAct || sent) btn.setAttribute('aria-disabled', 'true');
+      else btn.removeAttribute('aria-disabled');
     }
     root.classList.toggle('face-down', faceDown);
     toggle.setAttribute('aria-pressed', String(faceDown));

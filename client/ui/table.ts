@@ -9,6 +9,8 @@ import type { Pip, SeatModel, TableModel } from './tableModel.js';
 export interface TableHandler {
   /** Selection state; owned by the table screen so it survives rebuilds. */
   hand: HandStore;
+  /** Last server error text (pt-BR), shown as a small line so a rejected play is not silent. */
+  error: string | null;
   onPlay(cardId: CardId, faceDown: boolean): void;
   /** Match-over overlay button: leave the room and go back to the start screen. */
   onLeave(): void;
@@ -111,6 +113,11 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
   const { root, tableArea } = renderScene();
   root.classList.add(`mode-${model.seats.length}`);
   root.insertBefore(renderInfoStrip(model), tableArea);
+  if (handler.error) {
+    const err = el('p', 'table-error', handler.error);
+    err.setAttribute('role', 'alert');
+    root.insertBefore(err, tableArea);
+  }
   root.insertBefore(renderScoreboard(model), root.querySelector('.info-strip'));
 
   for (const seat of model.seats) {
