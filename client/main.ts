@@ -1,4 +1,5 @@
 import './styles/base.css';
+import './styles/cards.css';
 import { startApp } from './app.js';
 
 const root = document.querySelector<HTMLElement>('#app');

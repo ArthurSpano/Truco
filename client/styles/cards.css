@@ -1,0 +1,80 @@
+/* Cards are sized only by --card-w, so hand, table and opponents share one renderer. */
+.card {
+  --card-w: clamp(56px, 18vw, 84px);
+  position: relative;
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  border-radius: calc(var(--card-w) * 0.1);
+  background: var(--cream);
+  border: 1px solid #c9b88f;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
+  color: var(--ink);
+  font-size: calc(var(--card-w) * 0.26);
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+  touch-action: manipulation;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.card.red {
+  color: var(--red);
+}
+
+.card-corner {
+  position: absolute;
+  top: 6%;
+  left: 8%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2%;
+}
+
+.card-suit {
+  font-size: 0.8em;
+}
+
+.card-pip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 12%;
+  font-size: calc(var(--card-w) * 0.62);
+}
+
+.card.selected {
+  transform: translateY(calc(var(--card-w) * -0.25));
+  box-shadow: 0 6px 12px rgb(0 0 0 / 55%);
+}
+
+.card.manilha {
+  border-color: var(--amber);
+  box-shadow:
+    0 0 0 2px var(--amber),
+    0 0 12px 2px var(--amber-glow);
+}
+
+.card-back {
+  background:
+    linear-gradient(45deg, transparent 46%, var(--cream) 46% 54%, transparent 54%) 0 0 /
+      calc(var(--card-w) * 0.2) calc(var(--card-w) * 0.2),
+    linear-gradient(-45deg, transparent 46%, var(--cream) 46% 54%, transparent 54%) 0 0 /
+      calc(var(--card-w) * 0.2) calc(var(--card-w) * 0.2),
+    var(--red);
+  border: calc(var(--card-w) * 0.06) solid var(--cream);
+  outline: 1px solid #8e2a20;
+  outline-offset: calc(var(--card-w) * -0.06);
+}
+
+.card.encoberta {
+  opacity: 0.85;
+  filter: saturate(0.8) brightness(0.9);
+}
