@@ -109,6 +109,10 @@ export function createTableScreen(deps: TableDeps): TableScreen {
             latch.pending = true;
             deps.send({ t: 'play_card', cardId, faceDown });
           },
+          onPlayBlind: (slot) => {
+            latch.pending = true;
+            deps.send({ t: 'play_blind', slot });
+          },
           onLeave: () => {
             deps.leave();
           },

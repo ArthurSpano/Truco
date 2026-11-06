@@ -1,6 +1,7 @@
 import type { RoomState } from '../../shared/protocol.js';
 import type { Card, GameActions, GameView, Rank, TableCard } from '../../shared/types.js';
 import { actionBarModel, type ActionBarModel } from './actionBarModel.js';
+import { handPhase, type HandPhase } from './handPhase.js';
 import { anchorFor, isPartner, relativeIndex, type Anchor } from './layout.js';
 
 export type Pip = 'won' | 'lost' | 'tied' | 'pending';
@@ -34,6 +35,7 @@ export interface TableModel {
   actions: GameActions;
   bar: ActionBarModel;
   over: { won: boolean } | null;
+  phase: HandPhase;
 }
 
 const PIP_COUNT = 3;
@@ -85,5 +87,6 @@ export function tableModel(view: GameView, room: RoomState): TableModel {
     actions: view.actions,
     bar: actionBarModel(view, (s) => seats.find((p) => p.seat === s)?.name ?? 'Vazio'),
     over: view.winner === null ? null : { won: view.winner === view.team },
+    phase: handPhase(view),
   };
 }

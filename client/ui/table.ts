@@ -6,6 +6,12 @@ import { el } from './dom.js';
 import { renderHand } from './hand.js';
 import type { SendLatch } from './hand.js';
 import type { HandStore } from './handFan.js';
+import {
+  renderMatchOver,
+  renderMaoDeFerroBanner,
+  renderMaoDeOnze,
+  renderMaoDeOnzeWait,
+} from './phaseScreens.js';
 import { placeAtAnchor, renderChair, renderScene } from './scene.js';
 import type { Pip, SeatModel, TableModel } from './tableModel.js';
 
@@ -19,6 +25,8 @@ export interface TableHandler {
   /** Sends a truco intent (call or answer); the bar has already taken the latch. */
   send(m: ClientMessage): void;
   onPlay(cardId: CardId, faceDown: boolean): void;
+  /** Mão de ferro: play the card at this hand position (the viewer cannot see it). */
+  onPlayBlind(slot: number): void;
   /** Match-over overlay button: leave the room and go back to the start screen. */
   onLeave(): void;
 }
@@ -99,25 +107,6 @@ function renderCentre(model: TableModel): HTMLElement {
   return centre;
 }
 
-function renderOver(won: boolean, onLeave: () => void): HTMLElement {
-  const overlay = el('div', `match-over ${won ? 'won' : 'lost'}`);
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-labelledby', 'match-over-title');
-  const title = el('h2', 'match-over-title', won ? 'Vitória!' : 'Derrota');
-  title.id = 'match-over-title';
-  overlay.append(title);
-  const btn = el('button', 'btn primary', 'Voltar ao início');
-  btn.type = 'button';
-  btn.addEventListener('click', onLeave);
-  overlay.append(btn);
-  // Focus once the overlay is in the document.
-  queueMicrotask(() => {
-    btn.focus();
-  });
-  return overlay;
-}
-
 /** Pure render of one snapshot; the action bar sits between the table and the hand. */
 export function renderTable(model: TableModel, handler: TableHandler): HTMLElement {
   const { root, tableArea } = renderScene();
@@ -146,11 +135,33 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
     ),
   );
 
-  const mine = model.seats.find((s) => s.mine)?.cards;
-  if (mine) {
+  const phase = model.phase;
+  const me = model.seats.find((s) => s.mine);
+  if (phase.kind === 'mao_de_ferro') root.append(renderMaoDeFerroBanner());
+  if (phase.kind === 'mao_de_onze_wait') root.append(renderMaoDeOnzeWait());
+
+  // The hand row keeps its place in every phase: face-up cards, or backs in mão de ferro.
+  if (phase.kind === 'mao_de_ferro' && me) {
     root.append(
       renderHand(
-        mine,
+        null,
+        model.manilha,
+        model.actions,
+        () => undefined, // blind mode never plays by card id
+        handler.hand,
+        handler.latch,
+        {
+          count: me.cardCount,
+          onPlayBlind: (slot) => {
+            handler.onPlayBlind(slot);
+          },
+        },
+      ),
+    );
+  } else if (me?.cards) {
+    root.append(
+      renderHand(
+        me.cards,
         model.manilha,
         model.actions,
         (id, down) => {
@@ -162,9 +173,22 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
     );
   }
 
-  if (model.over)
+  if (phase.kind === 'mao_de_onze_decide') {
+    const names = new Map(model.seats.map((s) => [s.seat, s.mine ? 'Você' : s.name]));
     root.append(
-      renderOver(model.over.won, () => {
+      renderMaoDeOnze(
+        phase,
+        (m) => {
+          handler.send(m);
+        },
+        handler.latch,
+        (seat) => names.get(seat) ?? '',
+      ),
+    );
+  }
+  if (phase.kind === 'over')
+    root.append(
+      renderMatchOver(phase.won, () => {
         handler.onLeave();
       }),
     );

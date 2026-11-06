@@ -1,5 +1,5 @@
 import type { Card, CardId, GameActions, Rank } from '../../shared/types.js';
-import { renderCard } from './card.js';
+import { renderCard, renderCardBack } from './card.js';
 import { el } from './dom.js';
 import { createHandStore, fanLayout } from './handFan.js';
 import type { HandStore } from './handFan.js';
@@ -12,22 +12,41 @@ export interface SendLatch {
 /** Upward drag distance (px) that counts as "play this card". */
 const DRAG_PLAY_PX = 40;
 
+/** Mão de ferro: the viewer's cards are unseen, so the hand is `count` backs played by slot. */
+export interface BlindHand {
+  count: number;
+  onPlayBlind(slot: number): void;
+}
+
+/** Store key of a blind slot; never collides with a real card id (those are rank + suit code). */
+const slotKey = (i: number): string => `slot:${String(i)}`;
+
 /**
  * The viewer's hand: fanned cards, tap to select and tap again (or drag up) to play.
  * Playing is gated on `actions`; out of turn the hand is inert and sends nothing.
- * Mão de ferro (`actions.playBlind`) is handled by a later task; until then the cards
- * stay inert when only `playBlind` is set.
+ * With `blind` (mão de ferro) it shows card backs and only ever sends `onPlayBlind(slot)`,
+ * gated on `actions.playBlind`; `onPlay` is never called and there is no face-down toggle.
  */
 export function renderHand(
-  cards: Card[],
+  cards: Card[] | null,
   manilha: Rank,
   actions: GameActions,
   onPlay: (cardId: CardId, faceDown: boolean) => void,
   store: HandStore = createHandStore(),
   latch: SendLatch = { pending: false },
+  blind?: BlindHand,
 ): HTMLElement {
-  store.dispatch({ kind: 'sync', cardIds: cards.map((c) => c.id), actions });
-  const canAct = actions.play || actions.playFaceDown;
+  const isBlind = blind !== undefined;
+  const faces = isBlind ? [] : (cards ?? []);
+  const keys = isBlind
+    ? Array.from({ length: blind.count }, (_, i) => slotKey(i))
+    : faces.map((c) => c.id as string);
+  // The reducer plays on `actions.play`; in blind mode that permission is `playBlind`.
+  const effective: GameActions = isBlind
+    ? { ...actions, play: actions.playBlind, playFaceDown: false }
+    : actions;
+  store.dispatch({ kind: 'sync', cardIds: keys, actions: effective });
+  const canAct = isBlind ? actions.playBlind : actions.play || actions.playFaceDown;
 
   const root = el('div', 'hand');
   root.setAttribute('role', 'group');
@@ -41,10 +60,18 @@ export function renderHand(
   function tap(cardId: string): void {
     if (!canAct || latch.pending) return;
     const play = store.dispatch({ kind: 'tap', cardId });
-    const card = play && cards.find((c) => c.id === play.cardId);
-    if (play && card) {
-      latch.pending = true;
-      onPlay(card.id, play.faceDown);
+    if (play && blind) {
+      const slot = keys.indexOf(play.cardId);
+      if (slot >= 0) {
+        latch.pending = true;
+        blind.onPlayBlind(slot);
+      }
+    } else {
+      const card = play && faces.find((c) => c.id === play.cardId);
+      if (play && card) {
+        latch.pending = true;
+        onPlay(card.id, play.faceDown);
+      }
     }
     refresh();
   }
@@ -98,8 +125,8 @@ export function renderHand(
     });
   }
 
-  const slots = fanLayout(cards.length);
-  cards.forEach((card, i) => {
+  const slots = fanLayout(keys.length);
+  keys.forEach((key, i) => {
     const slot = slots[i];
     const btn = el('button', 'hand-card');
     btn.type = 'button';
@@ -109,15 +136,22 @@ export function renderHand(
       btn.style.setProperty('--dx', String(slot.offsetX));
       btn.style.setProperty('--drop', `${slot.lift}px`);
     }
-    btn.append(renderCard(card, { manilha: card.rank === manilha }));
-    attachDrag(btn, card.id);
-    buttons.set(card.id, btn);
+    const card = faces[i];
+    if (card) {
+      btn.append(renderCard(card, { manilha: card.rank === manilha }));
+    } else {
+      const back = renderCardBack();
+      back.setAttribute('aria-label', `Carta ${String(i + 1)}, virada`);
+      btn.append(back);
+    }
+    attachDrag(btn, key);
+    buttons.set(key, btn);
     fan.append(btn);
   });
 
   const toggle = el('button', 'btn hand-toggle', 'Virada');
   toggle.type = 'button';
-  toggle.hidden = !actions.playFaceDown;
+  toggle.hidden = isBlind || !actions.playFaceDown;
   toggle.addEventListener('click', () => {
     store.dispatch({ kind: 'toggle_face_down' });
     refresh();

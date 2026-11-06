@@ -467,3 +467,86 @@ body:has(#app.table-mode) {
   color: var(--muted);
   font-style: italic;
 }
+
+/* Hand phases: mão de onze decision overlay, waiting note, mão de ferro banner. */
+.phase-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10; /* below .fx-layer (30) so bubbles such as "Corre!" stay on top */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgb(20 10 4 / 0.88);
+}
+
+.phase-title {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--amber-glow);
+  text-shadow: 0 0 14px var(--red);
+}
+
+.phase-hands {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.phase-hand {
+  --card-w: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.phase-hand-name {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--cream);
+}
+
+.phase-cards {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.phase-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.phase-actions .btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.phase-actions .btn[aria-disabled='true'] {
+  opacity: 0.5;
+}
+
+.phase-wait,
+.ferro-banner {
+  position: absolute;
+  top: 1.9rem;
+  left: 50%;
+  z-index: 14;
+  max-width: 92%;
+  margin: 0;
+  padding: 3px 0.8rem;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  background: rgb(20 10 4 / 0.85);
+  color: var(--amber-glow);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+}
