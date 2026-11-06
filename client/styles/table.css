@@ -268,7 +268,7 @@ body:has(#app.table-mode) {
 
 /* Hand: its own row under the table so cards never cover the bottom chair. */
 .hand {
-  --card-w: clamp(64px, 22vw, 84px);
+  --card-w: clamp(74px, 22vw, 84px); /* strip = 0.62 * card-w >= 44px */
   position: relative;
   flex: none;
   padding-bottom: 4px;
@@ -276,7 +276,8 @@ body:has(#app.table-mode) {
 
 .hand-fan {
   position: relative;
-  height: calc(var(--card-w) * 1.4 + 14px);
+  /* card height (1.4w) + selected lift (0.25w) + a little air */
+  height: calc(var(--card-w) * 1.65 + 8px);
 }
 
 .hand-card {
@@ -290,7 +291,8 @@ body:has(#app.table-mode) {
   cursor: pointer;
   touch-action: none; /* lets the upward drag play a card without the page scrolling */
   transform-origin: 50% 120%;
-  transform: translateX(calc(-50% + var(--dx))) translateY(var(--drop)) rotate(var(--angle));
+  transform: translateX(calc(-50% + var(--dx) * var(--card-w))) translateY(var(--drop))
+    rotate(var(--angle));
   transition: transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }

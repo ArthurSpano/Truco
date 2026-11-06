@@ -30,38 +30,32 @@ export function renderHand(
   const fan = el('div', 'hand-fan');
   root.append(fan);
 
+  // One latch per rebuild: the next snapshot rebuilds the hand, which re-arms it.
+  let sent = false;
+  const buttons = new Map<string, HTMLButtonElement>();
+
   function tap(cardId: string): void {
-    if (!canAct) return;
+    if (!canAct || sent) return;
     const play = store.dispatch({ kind: 'tap', cardId });
     const card = play && cards.find((c) => c.id === play.cardId);
-    if (play && card) onPlay(card.id, play.faceDown);
-    else refresh();
+    if (play && card) {
+      sent = true;
+      onPlay(card.id, play.faceDown);
+    }
+    refresh();
   }
 
+  /** Updates the existing buttons in place so keyboard focus is never lost. */
   function refresh(): void {
     const { selected, faceDown } = store.state;
-    fan.replaceChildren();
-    const slots = fanLayout(cards.length);
-    cards.forEach((card, i) => {
-      const slot = slots[i];
-      const btn = el('button', 'hand-card');
-      btn.type = 'button';
-      btn.setAttribute('aria-pressed', String(card.id === selected));
-      if (!canAct) btn.setAttribute('aria-disabled', 'true');
-      if (slot) {
-        btn.style.setProperty('--angle', `${slot.angle}deg`);
-        btn.style.setProperty('--dx', `${slot.offsetX}px`);
-        btn.style.setProperty('--drop', `${slot.lift}px`);
-      }
-      btn.append(
-        renderCard(card, { manilha: card.rank === manilha, selected: card.id === selected }),
-      );
-      if (card.id === selected) btn.classList.add('is-selected');
-      attachDrag(btn, card.id);
-      fan.append(btn);
-    });
-    if (faceDown) root.classList.add('face-down');
-    else root.classList.remove('face-down');
+    for (const [id, btn] of buttons) {
+      const on = id === selected;
+      btn.setAttribute('aria-pressed', String(on));
+      btn.classList.toggle('is-selected', on);
+      btn.firstElementChild?.classList.toggle('selected', on);
+      if (!canAct || sent) btn.setAttribute('aria-disabled', 'true');
+    }
+    root.classList.toggle('face-down', faceDown);
     toggle.setAttribute('aria-pressed', String(faceDown));
     toggle.classList.toggle('on', faceDown);
   }
@@ -71,7 +65,7 @@ export function renderHand(
     let pointer = -1;
     let dragged = false;
     btn.addEventListener('pointerdown', (e) => {
-      if (!canAct) return;
+      if (!canAct || !e.isPrimary || e.button !== 0) return;
       startY = e.clientY;
       pointer = e.pointerId;
       dragged = false;
@@ -98,6 +92,23 @@ export function renderHand(
       tap(cardId);
     });
   }
+
+  const slots = fanLayout(cards.length);
+  cards.forEach((card, i) => {
+    const slot = slots[i];
+    const btn = el('button', 'hand-card');
+    btn.type = 'button';
+    if (!canAct) btn.setAttribute('aria-disabled', 'true');
+    if (slot) {
+      btn.style.setProperty('--angle', `${slot.angle}deg`);
+      btn.style.setProperty('--dx', String(slot.offsetX));
+      btn.style.setProperty('--drop', `${slot.lift}px`);
+    }
+    btn.append(renderCard(card, { manilha: card.rank === manilha }));
+    attachDrag(btn, card.id);
+    buttons.set(card.id, btn);
+    fan.append(btn);
+  });
 
   const toggle = el('button', 'btn hand-toggle', 'Virada');
   toggle.type = 'button';

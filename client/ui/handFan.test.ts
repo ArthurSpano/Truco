@@ -37,6 +37,8 @@ describe('fanLayout', () => {
     const f = fanLayout(3);
     expect(f[0]?.angle).toBe(-(f[2]?.angle ?? NaN));
     expect(f[1]?.angle).toBe(0);
+    expect(f[0]?.offsetX).toBe(-(f[2]?.offsetX ?? NaN));
+    expect(f[1]?.offsetX).toBe(0);
     for (const n of [2, 3, 4, 10]) {
       const l = fanLayout(n);
       for (let i = 1; i < l.length; i++) {

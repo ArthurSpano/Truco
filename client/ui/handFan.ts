@@ -3,14 +3,14 @@ import type { GameActions } from '../../shared/types.js';
 export interface FanSlot {
   /** Degrees, negative = tilted left. */
   angle: number;
-  /** Pixels from the centre of the hand. */
+  /** Horizontal offset from the centre, in card widths (unitless; CSS multiplies by --card-w). */
   offsetX: number;
   /** Pixels the card drops towards the edges of the fan (an arc). */
   lift: number;
 }
 
 const MAX_STEP = 8; // degrees between neighbours; the brief caps this at 10
-const SPREAD_X = 34;
+const SPREAD_X = 0.62; // card widths between neighbours: the exposed strip is 0.62 * --card-w
 
 /** Symmetric fan: centred on 0, neighbours at most 10 degrees apart. */
 export function fanLayout(count: number): FanSlot[] {
