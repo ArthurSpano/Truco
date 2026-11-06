@@ -1,5 +1,5 @@
 import type { RoomState } from '../../shared/protocol.js';
-import type { Card, GameView, Rank, TableCard } from '../../shared/types.js';
+import type { Card, GameActions, GameView, Rank, TableCard } from '../../shared/types.js';
 import { anchorFor, isPartner, relativeIndex, type Anchor } from './layout.js';
 
 export type Pip = 'won' | 'lost' | 'tied' | 'pending';
@@ -30,6 +30,7 @@ export interface TableModel {
   /** Cards of the last finished trick while the next one is empty, so its result stays visible. */
   lastTrick: { anchor: Anchor; card: TableCard }[];
   maoDeFerro: boolean;
+  actions: GameActions;
   over: { won: boolean } | null;
 }
 
@@ -79,6 +80,7 @@ export function tableModel(view: GameView, room: RoomState): TableModel {
     trick: placed(view.trick),
     lastTrick: view.trick.length === 0 && finished ? placed(finished.cards) : [],
     maoDeFerro: view.maoDeFerro,
+    actions: view.actions,
     over: view.winner === null ? null : { won: view.winner === view.team },
   };
 }

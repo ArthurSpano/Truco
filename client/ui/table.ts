@@ -1,10 +1,14 @@
 import type { CardId } from '../../shared/types.js';
 import { renderCardBack, renderCard, renderTableCard, rankLabel } from './card.js';
 import { el } from './dom.js';
+import { renderHand } from './hand.js';
+import type { HandStore } from './handFan.js';
 import { placeAtAnchor, renderChair, renderScene } from './scene.js';
 import type { Pip, SeatModel, TableModel } from './tableModel.js';
 
 export interface TableHandler {
+  /** Selection state; owned by the table screen so it survives rebuilds. */
+  hand: HandStore;
   onPlay(cardId: CardId, faceDown: boolean): void;
   /** Match-over overlay button: leave the room and go back to the start screen. */
   onLeave(): void;
@@ -102,7 +106,7 @@ function renderOver(won: boolean, onLeave: () => void): HTMLElement {
   return overlay;
 }
 
-/** Pure render of one snapshot; the hand and action bar are added by later tasks. */
+/** Pure render of one snapshot; the action bar is added by a later task. */
 export function renderTable(model: TableModel, handler: TableHandler): HTMLElement {
   const { root, tableArea } = renderScene();
   root.classList.add(`mode-${model.seats.length}`);
@@ -114,6 +118,21 @@ export function renderTable(model: TableModel, handler: TableHandler): HTMLEleme
     if (!seat.mine) tableArea.append(renderOpponentHand(seat));
   }
   tableArea.append(renderCentre(model));
+
+  const mine = model.seats.find((s) => s.mine)?.cards;
+  if (mine) {
+    root.append(
+      renderHand(
+        mine,
+        model.manilha,
+        model.actions,
+        (id, down) => {
+          handler.onPlay(id, down);
+        },
+        handler.hand,
+      ),
+    );
+  }
 
   if (model.over)
     root.append(

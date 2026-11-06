@@ -265,3 +265,75 @@ body:has(#app.table-mode) {
 #app.table-mode .table-area {
   min-height: 0;
 }
+
+/* Hand: its own row under the table so cards never cover the bottom chair. */
+.hand {
+  --card-w: clamp(64px, 22vw, 84px);
+  position: relative;
+  flex: none;
+  padding-bottom: 4px;
+}
+
+.hand-fan {
+  position: relative;
+  height: calc(var(--card-w) * 1.4 + 14px);
+}
+
+.hand-card {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: none; /* lets the upward drag play a card without the page scrolling */
+  transform-origin: 50% 120%;
+  transform: translateX(calc(-50% + var(--dx))) translateY(var(--drop)) rotate(var(--angle));
+  transition: transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hand-card .card {
+  display: block;
+}
+
+.hand-card:focus-visible {
+  outline: 3px solid var(--amber-glow);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.hand-card.is-selected {
+  z-index: 2;
+}
+
+.hand[aria-disabled='true'] .hand-card {
+  cursor: default;
+  filter: brightness(0.6);
+}
+
+.hand-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  z-index: 3;
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+.hand-toggle[hidden] {
+  display: none;
+}
+
+.hand-toggle.on {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.hand.face-down .hand-card.is-selected .card {
+  opacity: 0.6;
+  outline: 2px dashed var(--amber-glow);
+}

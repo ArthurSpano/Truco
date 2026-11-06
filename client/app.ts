@@ -9,6 +9,7 @@ import type { HomeView } from './ui/home.js';
 import { renderLobby } from './ui/lobby.js';
 import { el } from './ui/dom.js';
 import type { ScreenView } from './ui/screen.js';
+import { createHandStore } from './ui/handFan.js';
 import { renderTable } from './ui/table.js';
 import { tableModel } from './ui/tableModel.js';
 
@@ -151,6 +152,7 @@ export function startApp(root: HTMLElement): void {
     main.replaceChildren(element);
     let shownView: GameView | null = null;
     let shownRoom: RoomState | null = null;
+    const hand = createHandStore();
     return {
       element,
       update(next) {
@@ -161,6 +163,7 @@ export function startApp(root: HTMLElement): void {
         const model = tableModel(next.view, next.room);
         element.replaceChildren(
           renderTable(model, {
+            hand,
             onPlay: (cardId, faceDown) => {
               send({ t: 'play_card', cardId, faceDown });
             },

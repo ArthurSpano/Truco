@@ -49,7 +49,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 
 - [x] Boteco scene (table, chairs, neon sign, tiled floor) in CSS/SVG
 - [x] Layouts for 2, 4 and 6 players (not yet verified visually)
-- [ ] Hand fan, card selection and play
+- [x] Hand fan, card selection and play (visual/touch behaviour unverified in a browser)
 - [x] Played cards, vira and manilha highlight, hand value, score (Nós x Eles), trick pips (not yet verified visually)
 
 ## 6. Truco flow UI
