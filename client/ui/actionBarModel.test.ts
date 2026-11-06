@@ -65,7 +65,7 @@ describe('actionBarModel', () => {
 
   it('builds the raise label', () => {
     const m = actionBarModel(makeView({}, { respond: { raise: 6 } }), names);
-    expect(m.respond?.raise).toEqual({ label: 'Aumentar para SEIS', stake: 6 });
+    expect(m.respond?.raise).toEqual({ label: 'Aumentar para SEIS', name: 'SEIS', stake: 6 });
   });
 
   it('has no raise at the top of the ladder', () => {

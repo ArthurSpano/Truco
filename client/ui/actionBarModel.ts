@@ -9,7 +9,7 @@ export interface ActionBarModel {
   /** The TRUCO / SEIS / NOVE / DOZE button, when the server allows a call. */
   call: LabelledStake | null;
   /** Aceitar / Correr / Aumentar, when the viewer may answer a pending call. */
-  respond: { raise: LabelledStake | null } | null;
+  respond: { raise: (LabelledStake & { name: string }) | null } | null;
   /** Shown instead of buttons while the other team is still answering our call. */
   waiting: string | null;
   /** Who called what, while a call is pending. */
@@ -34,7 +34,13 @@ export function actionBarModel(view: GameView, names: (seat: number) => string):
     respond: actions.respond
       ? {
           raise:
-            raise === null ? null : { label: `Aumentar para ${stakeName(raise)}`, stake: raise },
+            raise === null
+              ? null
+              : {
+                  label: `Aumentar para ${stakeName(raise)}`,
+                  name: stakeName(raise),
+                  stake: raise,
+                },
         }
       : null,
     waiting: truco && truco.team === view.team && !actions.respond ? 'Aguardando resposta…' : null,
