@@ -1,6 +1,8 @@
 import type { ClientMessage, RoomState } from '../../shared/protocol.js';
 import type { GameView } from '../../shared/types.js';
 import type { AppState } from '../state/reducer.js';
+import { BubbleLayer } from './bubbles.js';
+import { bubblesFor, newEvents } from './bubbleModel.js';
 import { el } from './dom.js';
 import { createHandStore } from './handFan.js';
 import type { SendLatch } from './hand.js';
@@ -52,6 +54,19 @@ export function createTableScreen(deps: TableDeps): TableScreen {
   const anchorOf = (seat: number): HTMLElement | null =>
     sceneHost.querySelector<HTMLElement>(`.chair[data-seat="${String(seat)}"]`);
   const ctx: RenderedContext = { fx, anchorOf };
+  const bubbles = new BubbleLayer(fx, anchorOf);
+  // Initialised from the first state seen, so mounting or reconnecting never replays old events.
+  let lastSeq: number | null = null;
+
+  /** Runs on every state update (even ones that do not rebuild the table). */
+  const feedEvents = (state: AppState): void => {
+    if (lastSeq === null) {
+      lastSeq = state.eventSeq;
+      return;
+    }
+    for (const b of bubblesFor(newEvents(state.events, state.eventSeq, lastSeq))) bubbles.show(b);
+    lastSeq = state.eventSeq;
+  };
 
   return {
     element,
@@ -65,6 +80,7 @@ export function createTableScreen(deps: TableDeps): TableScreen {
       };
     },
     update(next) {
+      feedEvents(next);
       if (!next.view || !next.room) return;
       if (next.view === shownView && next.room === shownRoom && next.error === shownError) return;
       const viewChanged = next.view !== shownView;
@@ -101,6 +117,7 @@ export function createTableScreen(deps: TableDeps): TableScreen {
       for (const cb of [...listeners]) cb(next.view, ctx);
     },
     destroy() {
+      bubbles.destroy();
       listeners.clear();
       element.replaceChildren();
     },
