@@ -76,14 +76,22 @@ describe('formatting', () => {
       [
         { t: 'card_played', seat: 0, card: { seat: 0, faceDown: false, card } },
         { t: 'card_played', seat: 1, card: { seat: 1, faceDown: true } },
-        { t: 'trick_won', winner: 1, leader: 1, cards: [] },
-        { t: 'trick_won', winner: null, leader: 0, cards: [] },
+        { t: 'trick_won', winner: 1, winnerSeat: 1, leader: 1, cards: [] },
+        { t: 'trick_won', winner: null, winnerSeat: null, leader: 0, cards: [] },
         { t: 'truco_called', seat: 0, stake: 3 },
         { t: 'truco_answered', seat: 1, answer: 'raise', stake: 6 },
         { t: 'truco_answered', seat: 0, answer: 'accept', stake: 6 },
         { t: 'truco_answered', seat: 0, answer: 'run', stake: 9 },
         { t: 'mao_de_onze_decided', seat: 1, play: false },
-        { t: 'hand_won', team: 0, points: 6, ranBy: 1, scores: [6, 2] },
+        {
+          t: 'hand_won',
+          team: 0,
+          points: 6,
+          ranBy: 1,
+          reason: 'truco_run',
+          tricks: [],
+          scores: [6, 2],
+        },
         { t: 'match_won', team: 0, scores: [12, 2] },
       ] satisfies GameEvent[]
     ).map((e) => formatEvent(e, game));

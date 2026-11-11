@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { GameMode } from '../../shared/types.js';
-import { anchorFor, chairPosition, isPartner, relativeIndex } from './layout.js';
+import {
+  STAGE,
+  TABLE_CENTRE,
+  anchorFor,
+  isPartner,
+  relativeIndex,
+  seatGeometry,
+} from './layout.js';
 
 const MODES: GameMode[] = [2, 4, 6];
 const range = (n: number): number[] => Array.from({ length: n }, (_, i) => i);
@@ -58,48 +65,80 @@ describe('anchorFor', () => {
   });
 });
 
-describe('chairPosition', () => {
-  it('puts bottom below and top above the centre', () => {
-    expect(chairPosition('bottom').y).toBeGreaterThan(50);
-    expect(chairPosition('top').y).toBeLessThan(50);
+describe('seatGeometry', () => {
+  const anchorsOf = (mode: GameMode) => range(mode).map((i) => anchorFor(mode, i));
+  const FELT_RADIUS = 137;
+
+  it('uses the mockup positions for 4 players', () => {
+    expect(seatGeometry(4, 'top').avatar).toEqual({ x: 195, y: 112 });
+    expect(seatGeometry(4, 'left').played).toEqual({ x: -50, y: -2, rot: 86 });
+    expect(seatGeometry(4, 'bottom').from).toEqual({ x: 0, y: 270, rot: -8, scale: 1.55 });
   });
 
-  it('puts left/right on the correct sides', () => {
-    expect(chairPosition('left').x).toBeLessThan(50);
-    expect(chairPosition('right').x).toBeGreaterThan(50);
+  it('2 players share the 4-player bottom and top', () => {
+    expect(seatGeometry(2, 'top')).toEqual(seatGeometry(4, 'top'));
+    expect(seatGeometry(2, 'bottom')).toEqual(seatGeometry(4, 'bottom'));
   });
 
-  it('keeps coordinates within 0..100', () => {
-    const all = [
-      'bottom',
-      'right',
-      'top',
-      'left',
-      'bottom-right',
-      'top-right',
-      'top-left',
-      'bottom-left',
-    ] as const;
-    for (const a of all) {
-      const p = chairPosition(a);
-      expect(p.x).toBeGreaterThanOrEqual(0);
-      expect(p.x).toBeLessThanOrEqual(100);
-      expect(p.y).toBeGreaterThanOrEqual(0);
-      expect(p.y).toBeLessThanOrEqual(100);
+  it('only the viewer has no avatar', () => {
+    for (const mode of MODES) {
+      for (const a of anchorsOf(mode)) {
+        expect(seatGeometry(mode, a).avatar === null).toBe(a === 'bottom');
+      }
     }
   });
 
-  it('opposite anchors are 180 degrees apart', () => {
-    const pairs = [
-      ['bottom', 'top'],
-      ['left', 'right'],
-      ['bottom-right', 'top-left'],
-      ['top-right', 'bottom-left'],
-    ] as const;
-    for (const [a, b] of pairs) {
-      const d = Math.abs(chairPosition(a).angle - chairPosition(b).angle) % 360;
-      expect(d).toBe(180);
+  it('keeps avatars and bubbles on the stage', () => {
+    for (const mode of MODES) {
+      for (const a of anchorsOf(mode)) {
+        const g = seatGeometry(mode, a);
+        for (const p of [g.avatar, g.bubble]) {
+          if (!p) continue;
+          expect(p.x).toBeGreaterThanOrEqual(0);
+          expect(p.x).toBeLessThanOrEqual(STAGE.width);
+          expect(p.y).toBeGreaterThanOrEqual(0);
+          expect(p.y).toBeLessThanOrEqual(STAGE.height);
+        }
+      }
     }
+  });
+
+  it('puts each seat on its side of the table', () => {
+    for (const mode of MODES) {
+      for (const a of anchorsOf(mode)) {
+        const { chair, played } = seatGeometry(mode, a);
+        if (a.includes('left')) expect(chair.x).toBeLessThan(TABLE_CENTRE.x);
+        if (a.includes('right')) expect(chair.x).toBeGreaterThan(TABLE_CENTRE.x);
+        if (a.startsWith('top')) expect(chair.y).toBeLessThan(TABLE_CENTRE.y);
+        if (a.startsWith('bottom')) expect(chair.y).toBeGreaterThan(TABLE_CENTRE.y);
+        // The played card leans towards its owner.
+        expect(Math.sign(played.x)).toBe(Math.sign(chair.x - TABLE_CENTRE.x) || 0);
+      }
+    }
+  });
+
+  it('keeps played cards well inside the felt and distinct per seat', () => {
+    for (const mode of MODES) {
+      const spots = anchorsOf(mode).map((a) => seatGeometry(mode, a).played);
+      for (const p of spots) expect(Math.hypot(p.x, p.y)).toBeLessThan(FELT_RADIUS - 40);
+      expect(new Set(spots.map((p) => `${p.x},${p.y}`)).size).toBe(mode);
+    }
+  });
+
+  it('flies cards in from outside their resting spot', () => {
+    for (const mode of MODES) {
+      for (const a of anchorsOf(mode)) {
+        const { played, from } = seatGeometry(mode, a);
+        expect(Math.hypot(from.x, from.y)).toBeGreaterThan(Math.hypot(played.x, played.y));
+      }
+    }
+  });
+
+  it('places the 6-player hexagon symmetrically', () => {
+    const tr = seatGeometry(6, 'top-right').chair;
+    const tl = seatGeometry(6, 'top-left').chair;
+    expect(tr.x - TABLE_CENTRE.x).toBeCloseTo(TABLE_CENTRE.x - tl.x);
+    expect(tr.y).toBe(tl.y);
   });
 });
 

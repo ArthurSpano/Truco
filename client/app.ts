@@ -110,8 +110,6 @@ export function startApp(root: HTMLElement): void {
       if (event.t === 'match_won' && team === undefined) continue;
       for (const name of sfxFor(event, team ?? 0)) sfx.play(name);
     }
-    if (screenOf(state, replaced) === 'table') sfx.startAmbience();
-    else sfx.stopAmbience();
   }
 
   function render(): void {

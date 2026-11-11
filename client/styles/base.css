@@ -1,28 +1,54 @@
+/* Original display fonts of the "Taverna de madeira" design (pt-BR glyphs included). */
+@font-face {
+  font-family: 'TrucoToon';
+  src: url('/fonts/truco-toon.woff2') format('woff2');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TrucoLight';
+  src: url('/fonts/truco-light.woff2') format('woff2');
+  font-display: swap;
+}
+
 :root {
-  /* Boteco palette: wood, amber light, plastic-chair red, bottle green. */
-  --wood-dark: #1d140c;
-  --wood: #5a3a1f;
-  --wood-light: #8b5a2b;
-  --amber: #f5b631;
-  --amber-glow: #ffd36b;
-  --red: #c0392b;
-  --green: #1f5d3a;
-  --cream: #fdf6e3;
-  --ink: #2a1d12;
-  --muted: #d9c7a8;
-  --radius: 14px;
+  /* V1 palette: wood floor, amber light, red rug, cream outlines, dark ink. */
+  --ink: #2a1233;
+  --cream: #fffaf0;
+  --gold: #ffd23f;
+  --glass: #3a1d0e;
+  --nos: #ffc23d;
+  --eles: #ff5f86;
+  --red: #b3202a;
+  --muted: #e9d6b4;
+  --radius: 16px;
   --tap: 44px;
+  --font: 'TrucoToon', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /*
+   * Scene scale. The table is drawn on a 390 x 844 design artboard (the mockup's frame);
+   * --u is one design pixel in real pixels: the largest scale at which the whole artboard fits
+   * inside the safe area. Every table length is calc(N * var(--u)). --stage-x / --stage-y are
+   * the artboard's top-left corner on screen (it is centred).
+   */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --vh: 100vh;
+  --u: min(calc(100vw / 390), calc((var(--vh) - var(--safe-t) - var(--safe-b)) / 844));
+  --stage-x: calc(50vw - 195 * var(--u));
+  --stage-y: calc(var(--vh) / 2 - 422 * var(--u) + (var(--safe-t) - var(--safe-b)) / 2);
 
   color-scheme: dark;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--font);
   line-height: 1.4;
   color: var(--cream);
-  background: var(--wood-dark);
+  background: #7a4a27;
+}
+
+/* Dynamic viewport height where supported, so mobile URL bars never cut the table. */
+@supports (height: 100dvh) {
+  :root {
+    --vh: 100dvh;
+  }
 }
 
 *,
@@ -42,12 +68,39 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Wooden-plank floor under a warm lamp (the V1 `.bg`), shared by every screen. */
+.floor,
+body {
+  background:
+    radial-gradient(circle at 14% 7%, rgb(255 214 140 / 0.6), transparent 44%),
+    radial-gradient(circle at 88% 94%, rgb(255 160 80 / 0.22), transparent 42%),
+    repeating-linear-gradient(
+      0deg,
+      rgb(30 12 2 / 0.3) 0 calc(2 * var(--u)),
+      transparent calc(2 * var(--u)) calc(210 * var(--u))
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgb(30 12 2 / 0.45) 0 calc(2 * var(--u)),
+      transparent calc(2 * var(--u)) calc(62 * var(--u))
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.035) 0 calc(1 * var(--u)),
+      transparent calc(1 * var(--u)) calc(6 * var(--u))
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #8d5a31 0 calc(62 * var(--u)),
+      #7a4a27 calc(62 * var(--u)) calc(124 * var(--u)),
+      #9a683c calc(124 * var(--u)) calc(186 * var(--u)),
+      #83532d calc(186 * var(--u)) calc(248 * var(--u))
+    );
+  background-attachment: fixed;
+}
+
 body {
   min-height: 100dvh;
-  /* Azulejo-ish checkered floor under a warm overhead light. */
-  background:
-    radial-gradient(ellipse at 50% 0%, rgb(245 182 49 / 0.28), transparent 65%),
-    repeating-conic-gradient(#2b1d11 0 25%, #23170d 0 50%) 0 0 / 48px 48px;
 }
 
 #app {
@@ -64,39 +117,41 @@ body {
 h1,
 h2 {
   margin: 0;
+  font-weight: 400;
 }
 
 .sign {
   margin-top: 1rem;
 }
 
+/* Title: gold toon lettering with a dark outline, like the V1 banner. */
 .neon {
-  font-size: clamp(2rem, 9.5vw, 3.2rem);
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: #fff4d6;
-  text-shadow:
-    0 0 4px var(--amber-glow),
-    0 0 14px var(--amber),
-    0 0 32px var(--red);
+  font-size: clamp(2.2rem, 11vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  color: var(--gold);
+  -webkit-text-stroke: 0.22em var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0 0.12em 0 var(--ink);
+  transform: rotate(-3deg);
 }
 
 .tagline {
-  margin: 0.5rem 0 0;
-  color: var(--muted);
+  margin: 0.6rem 0 0;
+  color: var(--cream);
+  letter-spacing: 0.04em;
+  -webkit-text-stroke: 0.18em var(--ink);
+  paint-order: stroke fill;
 }
 
+/* Glass panel (the V1 `.glass`): dark wood, cream outline, hard drop shadow. */
 .panel {
   width: 100%;
   padding: 1.25rem;
-  border-radius: var(--radius);
-  /* Bar table top. */
-  background:
-    repeating-linear-gradient(92deg, rgb(255 255 255 / 0.03) 0 2px, transparent 2px 9px),
-    linear-gradient(160deg, var(--wood-light), var(--wood));
-  box-shadow:
-    inset 0 0 0 4px rgb(0 0 0 / 0.25),
-    0 12px 30px rgb(0 0 0 / 0.5);
+  border-radius: 22px;
+  background: var(--glass);
+  border: 3px solid var(--cream);
+  box-shadow: 0 6px 0 rgb(20 6 50 / 0.5);
 }
 
 .share {
@@ -110,7 +165,8 @@ h2 {
   width: min(60vw, 200px);
   height: auto;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 3px solid var(--ink);
   background: #fff;
   image-rendering: pixelated;
 }
@@ -121,10 +177,10 @@ h2 {
   min-height: var(--tap);
   padding: 0 1rem;
   border-radius: 999px;
-  background: var(--amber);
+  border: 3px solid var(--ink);
+  background: var(--gold);
   color: var(--ink);
-  font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   text-decoration: none;
   word-break: break-all;
 }
@@ -158,19 +214,20 @@ h2 {
 }
 
 .field-label {
-  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 .input {
   width: 100%;
   min-height: var(--tap);
   padding: 0 0.9rem;
-  border: 2px solid rgb(0 0 0 / 0.35);
-  border-radius: 10px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
   background: var(--cream);
   color: var(--ink);
   /* 16px+ keeps iOS Safari from zooming on focus. */
   font: inherit;
+  font-family: system-ui, sans-serif;
   font-size: 1.125rem;
 }
 
@@ -180,7 +237,7 @@ h2 {
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.3em;
-  font-weight: 800;
+  font-family: var(--font);
 }
 
 .row {
@@ -188,32 +245,35 @@ h2 {
   gap: 0.6rem;
 }
 
+/* Toon buttons: thick ink outline, hard shadow, outlined white label. */
 .btn {
   min-height: var(--tap);
   padding: 0 1.1rem;
-  border: 0;
-  border-radius: 10px;
-  background: var(--green);
-  color: var(--cream);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: #2fcf8a;
+  color: #fff;
   font: inherit;
-  font-size: 1.05rem;
-  font-weight: 800;
-  box-shadow: 0 3px 0 rgb(0 0 0 / 0.4);
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  -webkit-text-stroke: 4px var(--ink);
+  paint-order: stroke fill;
+  box-shadow: 0 4px 0 var(--ink);
   cursor: pointer;
 }
 
 .btn.primary {
-  background: var(--red);
+  background: linear-gradient(#ffe066, #ffb21e);
 }
 
 .btn:disabled {
-  opacity: 0.45;
+  filter: grayscale(0.75) brightness(0.8);
   cursor: not-allowed;
 }
 
 .btn:active:not(:disabled) {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 0.4);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
 }
 
 .segmented {
@@ -223,21 +283,22 @@ h2 {
 
 .seg {
   flex: 1;
+  min-width: 0;
   min-height: var(--tap);
+  overflow-wrap: anywhere;
   padding: 0.3rem 0.4rem;
-  border: 2px solid rgb(0 0 0 / 0.35);
-  border-radius: 10px;
-  background: rgb(0 0 0 / 0.3);
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #5a3a1f;
   color: var(--cream);
   font: inherit;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1.2;
   cursor: pointer;
 }
 
 .seg.on {
-  background: var(--amber);
-  border-color: var(--amber-glow);
+  background: var(--gold);
   color: var(--ink);
 }
 
@@ -245,11 +306,12 @@ h2 {
   width: 100%;
   margin: 0;
   padding: 0.35rem 0.75rem;
-  border-radius: 8px;
-  background: var(--amber);
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  background: var(--gold);
   color: var(--ink);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
   text-align: center;
 }
 
@@ -274,11 +336,12 @@ h2 {
 
 .room-code {
   font-size: 3rem;
-  font-weight: 900;
   letter-spacing: 0.3em;
   /* Offsets trailing letter-spacing so the code looks centred. */
   padding-left: 0.3em;
-  color: var(--amber-glow);
+  color: var(--gold);
+  -webkit-text-stroke: 0.18em var(--ink);
+  paint-order: stroke fill;
 }
 
 .seats {
@@ -290,6 +353,7 @@ h2 {
   list-style: none;
 }
 
+/* Lobby seat cards, coloured like the table's chairs (amber / red). */
 .seat {
   display: flex;
   flex-direction: column;
@@ -298,20 +362,23 @@ h2 {
   width: 100%;
   min-height: 72px;
   padding: 0.5rem 0.7rem;
-  border: 2px solid rgb(0 0 0 / 0.35);
-  border-radius: 10px;
-  color: var(--cream);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  color: #fff;
   font: inherit;
   text-align: left;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+  box-shadow: 0 4px 0 rgb(20 6 50 / 0.45);
   cursor: pointer;
 }
 
 .seat.team-0 {
-  background: #8c2a20;
+  background: radial-gradient(circle at 35% 28%, #f0b85a, #d98d2b 72%);
 }
 
 .seat.team-1 {
-  background: #2c3f5a;
+  background: radial-gradient(circle at 35% 28%, #c8454d, #8e1f2a 72%);
 }
 
 .seat:disabled {
@@ -319,8 +386,9 @@ h2 {
 }
 
 .seat.mine {
-  border-color: var(--amber-glow);
-  box-shadow: 0 0 0 2px var(--amber);
+  box-shadow:
+    0 0 0 3px var(--cream),
+    0 0 0 6px var(--gold);
 }
 
 .seat.away {
@@ -328,23 +396,21 @@ h2 {
 }
 
 .seat.ready .seat-note {
-  color: var(--amber-glow);
+  color: var(--gold);
 }
 
 .seat-team {
   font-size: 0.8rem;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .seat-name {
-  font-size: 1.1rem;
-  font-weight: 800;
+  font-size: 1.15rem;
   overflow-wrap: anywhere;
 }
 
 .seat-note {
   font-size: 0.8rem;
-  font-weight: 700;
 }
 
 .mute-btn {
@@ -355,11 +421,12 @@ h2 {
   width: 44px;
   height: 44px;
   padding: 0;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   line-height: 1;
-  border: 1px solid rgb(255 244 214 / 0.35);
+  border: 3px solid var(--cream);
   border-radius: 50%;
-  background: rgb(0 0 0 / 0.45);
-  color: #fff4d6;
+  background: var(--glass);
+  color: var(--cream);
+  box-shadow: 0 4px 0 rgb(20 6 50 / 0.5);
   touch-action: manipulation;
 }

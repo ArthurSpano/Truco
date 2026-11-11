@@ -1,19 +1,14 @@
 import type { ClientMessage } from '../../shared/protocol.js';
 import type { CardId } from '../../shared/types.js';
 import { renderActionBar } from './actionBar.js';
-import { renderCardBack, renderCard, renderTableCard, rankLabel } from './card.js';
+import { renderCard, rankLabel } from './card.js';
 import { el } from './dom.js';
 import { renderHand } from './hand.js';
 import type { SendLatch } from './hand.js';
 import type { HandStore } from './handFan.js';
-import {
-  renderMatchOver,
-  renderMaoDeFerroBanner,
-  renderMaoDeOnze,
-  renderMaoDeOnzeWait,
-} from './phaseScreens.js';
-import { placeAtAnchor, renderChair, renderScene } from './scene.js';
-import type { Pip, SeatModel, TableModel } from './tableModel.js';
+import { renderMatchOver, renderMaoDeOnze } from './phaseScreens.js';
+import { renderRoom } from './scene.js';
+import type { Pip, TableModel } from './tableModel.js';
 
 export interface TableHandler {
   /** Selection state; owned by the table screen so it survives rebuilds. */
@@ -31,171 +26,155 @@ export interface TableHandler {
   onLeave(): void;
 }
 
-const PIP_LABELS: Record<Pip, string> = {
-  won: 'vaza ganha',
-  lost: 'vaza perdida',
-  tied: 'vaza empatada',
-  pending: 'vaza pendente',
+const PIPS: Record<Pip, { cls: string; label: string; aria: string }> = {
+  won: { cls: 'nos', label: 'N', aria: 'rodada nossa' },
+  lost: { cls: 'eles', label: 'E', aria: 'rodada deles' },
+  tied: { cls: 'tie', label: '=', aria: 'rodada empatada' },
+  pending: { cls: 'none', label: '', aria: 'rodada por jogar' },
 };
 
-function renderScoreboard(model: TableModel): HTMLElement {
-  const board = el('div', 'scoreboard');
-  const us = el('span', 'score score-us');
-  us.append(el('span', 'score-label', 'Nós'), el('strong', 'score-num', String(model.us)));
-  const them = el('span', 'score score-them');
-  them.append(el('strong', 'score-num', String(model.them)), el('span', 'score-label', 'Eles'));
-  board.append(us, el('span', 'score-x', '×'), them);
-  return board;
-}
+const two = (n: number): string => String(n).padStart(2, '0');
 
-function renderPips(pips: Pip[]): HTMLElement {
-  const row = el('div', 'pips');
-  row.setAttribute('role', 'list');
-  for (const pip of pips) {
-    const dot = el('span', `pip ${pip}`);
-    dot.setAttribute('role', 'listitem');
-    dot.setAttribute('aria-label', PIP_LABELS[pip]);
-    row.append(dot);
-  }
-  return row;
-}
-
-/** Fanned card backs next to an opponent's chair, one per card still in hand. */
-function renderOpponentHand(seat: SeatModel): HTMLElement {
-  const fan = el('div', `opp-hand anchor-${seat.anchor}`);
-  fan.dataset.seat = String(seat.seat);
-  const n = seat.cardCount;
-  for (let i = 0; i < n; i++) {
-    const back = renderCardBack();
-    back.style.setProperty('--fan', String(i - (n - 1) / 2));
-    fan.append(back);
-  }
-  placeAtAnchor(fan, seat.anchor);
-  return fan;
-}
-
-/** Vira, manilha, hand value and trick pips: a compact strip above the table, off the card paths. */
-function renderInfoStrip(model: TableModel): HTMLElement {
-  const strip = el('div', 'info-strip');
-  const vira = el('div', 'vira');
-  const viraCard = renderCard(model.vira);
-  viraCard.setAttribute('role', 'img');
-  vira.append(el('span', 'vira-label', 'Vira'), viraCard);
-  const manilha = el('span', 'manilha-mark', `Manilha: ${rankLabel(model.manilha)}`);
-  const badge = el('span', 'value-badge', `Valendo ${model.value}`);
-  const tags = el('div', 'info-tags');
-  tags.append(manilha, badge);
-  if (model.maoDeFerro) tags.append(el('span', 'ferro-mark', 'Mão de ferro'));
-  strip.append(vira, tags, renderPips(model.pips));
-  return strip;
-}
-
-function renderCentre(model: TableModel): HTMLElement {
-  const centre = el('div', 'table-centre');
-  const played = el('div', 'played');
-  const add = (list: TableModel['trick'], extra: string): void => {
-    for (const { anchor, card } of list) {
-      const slot = el('div', `played-slot anchor-${anchor}${extra}`);
-      slot.dataset.seat = String(card.seat);
-      slot.append(renderTableCard(card, model.manilha));
-      played.append(slot);
-    }
+function renderScore(model: TableModel): HTMLElement {
+  const box = el('div', 'score glass');
+  box.setAttribute('aria-label', `Placar: nós ${String(model.us)}, eles ${String(model.them)}`);
+  const row = (label: string, value: number, cls: string): HTMLElement => {
+    const r = el('div', `r${cls}`);
+    r.setAttribute('aria-hidden', 'true');
+    r.append(el('span', undefined, label), el('b', undefined, two(value)));
+    return r;
   };
-  add(model.lastTrick, ' last-trick');
-  add(model.trick, '');
-  centre.append(played);
-  return centre;
+  box.append(row('NÓS', model.us, ''), row('ELES', model.them, ' e'));
+  return box;
 }
 
-/** Pure render of one snapshot; the action bar sits between the table and the hand. */
-export function renderTable(model: TableModel, handler: TableHandler): HTMLElement {
-  const { root, tableArea } = renderScene();
-  root.classList.add(`mode-${model.seats.length}`);
-  root.insertBefore(renderInfoStrip(model), tableArea);
+function renderMidHud(model: TableModel): HTMLElement {
+  const hud = el('div', 'mid-hud');
+  hud.append(el('div', 'lbl', 'RODADA'));
+  const pips = el('div', 'pips');
+  pips.setAttribute('role', 'list');
+  for (const pip of model.pips) {
+    const p = PIPS[pip];
+    const dot = el('div', `pip ${p.cls}`, p.label);
+    dot.setAttribute('role', 'listitem');
+    dot.setAttribute('aria-label', p.aria);
+    pips.append(dot);
+  }
+  hud.append(pips, el('div', 'value', `VALE ${String(model.value)}`));
+  if (model.maoDeFerro) hud.append(el('div', 'tag ferro', 'MÃO DE FERRO'));
+  return hud;
+}
+
+function renderVira(model: TableModel): HTMLElement {
+  const box = el('div', 'vira glass');
+  const holder = el('div', 'vc');
+  const card = renderCard(model.vira);
+  card.classList.add('c-v');
+  card.setAttribute('role', 'img');
+  holder.append(card);
+  const t = el('div', 't');
+  t.append(
+    el('span', 'lbl', 'VIRA'),
+    el('span', 'lbl man-lbl', 'MANILHA'),
+    el('b', undefined, rankLabel(model.manilha)),
+  );
+  t.setAttribute('aria-label', `Manilha: ${rankLabel(model.manilha)}`);
+  box.append(holder, t);
+  return box;
+}
+
+function renderStatus(model: TableModel): HTMLElement {
+  const pill = el('div', 'status');
+  pill.setAttribute('role', 'status');
+  pill.append(
+    el('span', `dot${model.status.on ? ' on' : ''}`),
+    el('span', undefined, model.status.text),
+  );
+  return pill;
+}
+
+export interface RenderedTable {
+  /** Everything on the stage (scaled with it). */
+  scene: HTMLElement;
+  /** Full-viewport dialog (mão de onze decision, match over), outside the stage; or null. */
+  overlay: HTMLElement | null;
+}
+
+/** Pure render of one snapshot. */
+export function renderTable(model: TableModel, handler: TableHandler): RenderedTable {
+  const scene = el('div', `scene mode-${String(model.mode)}`);
+  scene.append(renderRoom(model), renderScore(model), renderMidHud(model), renderVira(model));
+  scene.append(renderStatus(model));
+
   if (handler.error) {
     const err = el('p', 'table-error', handler.error);
     err.setAttribute('role', 'alert');
-    root.append(err);
+    scene.append(err);
   }
-  root.insertBefore(renderScoreboard(model), root.querySelector('.info-strip'));
-
-  for (const seat of model.seats) {
-    tableArea.append(renderChair(seat.anchor, seat));
-    if (!seat.mine) tableArea.append(renderOpponentHand(seat));
-  }
-  tableArea.append(renderCentre(model));
 
   const phase = model.phase;
   const me = model.seats.find((s) => s.mine);
-  // Truco is barred and no answer is pending in these phases, so the bar is free for the note.
-  const phaseNote =
-    phase.kind === 'mao_de_ferro'
-      ? renderMaoDeFerroBanner()
-      : phase.kind === 'mao_de_onze_wait'
-        ? renderMaoDeOnzeWait()
-        : null;
-  root.append(
+  // The hand keeps its place in every phase: face-up cards, or backs in mão de ferro.
+  let hand: HTMLElement | null = null;
+  if (phase.kind === 'mao_de_ferro' && me) {
+    hand = renderHand(
+      null,
+      model.manilha,
+      model.actions,
+      () => undefined, // blind mode never plays by card id
+      handler.hand,
+      handler.latch,
+      {
+        count: me.cardCount,
+        onPlayBlind: (slot) => {
+          handler.onPlayBlind(slot);
+        },
+      },
+    );
+  } else if (me?.cards) {
+    hand = renderHand(
+      me.cards,
+      model.manilha,
+      model.actions,
+      (id, down) => {
+        handler.onPlay(id, down);
+      },
+      handler.hand,
+      handler.latch,
+    );
+  }
+  // The face-down toggle lives in the bar, beside the gold button.
+  const toggle = hand?.querySelector<HTMLElement>('.hand-toggle') ?? null;
+  const offered = toggle !== null && !toggle.hidden;
+  if (toggle && !offered) toggle.remove();
+  if (hand) scene.append(hand);
+  scene.append(
     renderActionBar(
       model.bar,
       (m) => {
         handler.send(m);
       },
       handler.latch,
-      phaseNote,
+      offered ? toggle : null,
     ),
   );
 
-  // The hand row keeps its place in every phase: face-up cards, or backs in mão de ferro.
-  if (phase.kind === 'mao_de_ferro' && me) {
-    root.append(
-      renderHand(
-        null,
-        model.manilha,
-        model.actions,
-        () => undefined, // blind mode never plays by card id
-        handler.hand,
-        handler.latch,
-        {
-          count: me.cardCount,
-          onPlayBlind: (slot) => {
-            handler.onPlayBlind(slot);
-          },
-        },
-      ),
-    );
-  } else if (me?.cards) {
-    root.append(
-      renderHand(
-        me.cards,
-        model.manilha,
-        model.actions,
-        (id, down) => {
-          handler.onPlay(id, down);
-        },
-        handler.hand,
-        handler.latch,
-      ),
-    );
-  }
-
+  let overlay: HTMLElement | null = null;
   if (phase.kind === 'mao_de_onze_decide') {
     const names = new Map(model.seats.map((s) => [s.seat, s.mine ? 'Você' : s.name]));
-    root.append(
-      renderMaoDeOnze(
-        phase,
-        (m) => {
-          handler.send(m);
-        },
-        handler.latch,
-        (seat) => names.get(seat) ?? '',
-      ),
+    overlay = renderMaoDeOnze(
+      phase,
+      (m) => {
+        handler.send(m);
+      },
+      handler.latch,
+      (seat) => names.get(seat) ?? '',
+      model.manilha,
     );
+  } else if (phase.kind === 'over') {
+    overlay = renderMatchOver(phase.won, model.us, model.them, () => {
+      handler.onLeave();
+    });
   }
-  if (phase.kind === 'over')
-    root.append(
-      renderMatchOver(phase.won, () => {
-        handler.onLeave();
-      }),
-    );
-  return root;
+  return { scene, overlay };
 }

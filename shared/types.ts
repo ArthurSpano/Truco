@@ -54,6 +54,9 @@ export type TableCard =
 /** The team that took a trick, or `null` when it was tied (*empate* / *embuchada*). */
 export type TrickWinner = Team | null;
 
+/** Why a hand ended: decided by tricks, a team ran from a truco call, or ran from a mão de onze. */
+export type HandEndReason = 'tricks' | 'truco_run' | 'mao_de_onze_run';
+
 /** How the answering team responds to a truco call. */
 export type TrucoAnswer = 'accept' | 'run' | 'raise';
 
@@ -87,6 +90,8 @@ export interface TrickView {
   /** Cards in playing order; face-down cards stay hidden. */
   cards: TableCard[];
   winner: TrickWinner;
+  /** Seat of the single card that took the trick (the first of the tied top cards for a team win); `null` when tied. */
+  winnerSeat: Seat | null;
 }
 
 /** What the viewer may do right now. Lets the client enable buttons without knowing the rules. */
@@ -155,17 +160,30 @@ export interface GameView {
  */
 export type GameEvent =
   | { t: 'card_played'; seat: Seat; card: TableCard }
-  | { t: 'trick_won'; winner: TrickWinner; leader: Seat; cards: TableCard[] }
+  | {
+      t: 'trick_won';
+      winner: TrickWinner;
+      /** Seat of the winning card; `null` when the trick was tied. */
+      winnerSeat: Seat | null;
+      leader: Seat;
+      cards: TableCard[];
+    }
   | { t: 'truco_called'; seat: Seat; stake: number }
   /** For `raise`, `stake` is the new call; otherwise the call that was accepted or run from. */
   | { t: 'truco_answered'; seat: Seat; answer: TrucoAnswer; stake: number }
   | { t: 'mao_de_onze_decided'; seat: Seat; play: boolean }
-  /** `ranBy` is set when the hand ended because a team ran. `scores` are after this hand. */
+  /**
+   * `ranBy` is set when the hand ended because a team ran. `reason` says why
+   * it ended and `tricks` lists the results of the tricks played (empty when
+   * a run ended the hand before any card). `scores` are after this hand.
+   */
   | {
       t: 'hand_won';
       team: Team;
       points: number;
       ranBy: Team | null;
+      reason: HandEndReason;
+      tricks: TrickWinner[];
       scores: [number, number];
     }
   | {

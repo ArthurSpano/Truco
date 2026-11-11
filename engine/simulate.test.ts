@@ -271,7 +271,13 @@ describe('invariant checks', () => {
     const held = game.hand.hands[2]?.[1];
     if (held === undefined) throw new Error('empty hand');
     const leak: GameEvent[] = [
-      { t: 'trick_won', winner: 0, leader: 0, cards: [{ seat: 2, faceDown: false, card: held }] },
+      {
+        t: 'trick_won',
+        winner: 0,
+        winnerSeat: 0,
+        leader: 0,
+        cards: [{ seat: 2, faceDown: false, card: held }],
+      },
     ];
     expect(stepViolations(game, game, leak)).toContain(`events reveal ${held.id}`);
 
@@ -293,7 +299,15 @@ describe('stats', () => {
       { t: 'truco_called', seat: 0, stake: 3 },
       { t: 'truco_answered', seat: 1, answer: 'raise', stake: 6 },
       { t: 'truco_answered', seat: 0, answer: 'run', stake: 6 },
-      { t: 'hand_won', team: 1, points: 3, ranBy: 0, scores: [0, 3] },
+      {
+        t: 'hand_won',
+        team: 1,
+        points: 3,
+        ranBy: 0,
+        reason: 'truco_run',
+        tricks: [],
+        scores: [0, 3],
+      },
       { t: 'hand_dealt', handNumber: 2, dealer: 1, maoDeOnze: null, maoDeFerro: false },
     ];
     const one = countEvents(emptyStats(), events);

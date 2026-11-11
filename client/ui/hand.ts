@@ -48,12 +48,12 @@ export function renderHand(
   store.dispatch({ kind: 'sync', cardIds: keys, actions: effective });
   const canAct = isBlind ? actions.playBlind : actions.play || actions.playFaceDown;
 
-  const root = el('div', 'hand');
+  const root = el('div', `hand fan${String(keys.length)}`);
   root.setAttribute('role', 'group');
   root.setAttribute('aria-label', 'Sua mão');
   if (!canAct) root.setAttribute('aria-disabled', 'true');
-  const fan = el('div', 'hand-fan');
-  root.append(fan);
+  // `yt` lifts the whole fan a little: it is your turn.
+  root.classList.toggle('yt', canAct);
 
   const buttons = new Map<string, HTMLButtonElement>();
 
@@ -83,7 +83,6 @@ export function renderHand(
       const on = id === selected;
       btn.setAttribute('aria-pressed', String(on));
       btn.classList.toggle('is-selected', on);
-      btn.firstElementChild?.classList.toggle('selected', on);
       if (!canAct || latch.pending) btn.setAttribute('aria-disabled', 'true');
       else btn.removeAttribute('aria-disabled');
     }
@@ -128,28 +127,35 @@ export function renderHand(
   const slots = fanLayout(keys.length);
   keys.forEach((key, i) => {
     const slot = slots[i];
-    const btn = el('button', 'hand-card');
+    const btn = el('button', 'hw');
     btn.type = 'button';
     if (!canAct) btn.setAttribute('aria-disabled', 'true');
+    btn.style.setProperty('--i', String(i));
     if (slot) {
-      btn.style.setProperty('--angle', `${slot.angle}deg`);
-      btn.style.setProperty('--dx', String(slot.offsetX));
-      btn.style.setProperty('--drop', `${slot.lift}px`);
+      btn.style.setProperty('--angle', `${String(slot.angle)}deg`);
+      btn.style.setProperty('--drop', String(slot.lift));
     }
+    const lift = el('div', 'lift');
     const card = faces[i];
+    let face: HTMLElement;
     if (card) {
-      btn.append(renderCard(card, { manilha: card.rank === manilha }));
+      face = renderCard(card, { manilha: card.rank === manilha });
     } else {
-      const back = renderCardBack();
-      back.setAttribute('aria-label', `Carta ${String(i + 1)}, virada`);
-      btn.append(back);
+      face = renderCardBack();
+      face.setAttribute('aria-label', `Carta ${String(i + 1)}, virada`);
     }
+    face.classList.add('c-h');
+    lift.append(face);
+    btn.append(lift);
     attachDrag(btn, key);
     buttons.set(key, btn);
-    fan.append(btn);
+    root.append(btn);
   });
 
-  const toggle = el('button', 'btn hand-toggle', 'Virada');
+  // table.ts moves this into the action bar; its handlers stay bound to this hand.
+  const toggle = el('button', 'btn hand-toggle');
+  toggle.append(el('span', undefined, 'VIRADA'), el('small', undefined, 'jogar escondida'));
+  toggle.setAttribute('aria-label', 'Jogar a próxima carta virada');
   toggle.type = 'button';
   toggle.hidden = isBlind || !actions.playFaceDown;
   toggle.addEventListener('click', () => {

@@ -3,21 +3,21 @@ import type { GameActions } from '../../shared/types.js';
 export interface FanSlot {
   /** Degrees, negative = tilted left. */
   angle: number;
-  /** Horizontal offset from the centre, in card widths (unitless; CSS multiplies by --card-w). */
-  offsetX: number;
-  /** Pixels the card drops towards the edges of the fan (an arc). */
+  /** Design pixels the card drops towards the edges of the fan (an arc). */
   lift: number;
 }
 
-const MAX_STEP = 8; // degrees between neighbours; the brief caps this at 10
-const SPREAD_X = 0.62; // card widths between neighbours: the exposed strip is 0.62 * --card-w
-
-/** Symmetric fan: centred on 0, neighbours at most 10 degrees apart. */
+/**
+ * The V1 fan: cards overlap in a flex row and tilt around a pivot below them.
+ * Three cards: -9 / 0 / 9 degrees with the outer two dropped 8px; two cards: -5 / 5.
+ */
 export function fanLayout(count: number): FanSlot[] {
+  const step = count >= 3 ? 9 : 10;
+  const drop = count >= 3 ? 8 : 0;
   const slots: FanSlot[] = [];
   for (let i = 0; i < count; i++) {
     const pos = i - (count - 1) / 2;
-    slots.push({ angle: pos * MAX_STEP, offsetX: pos * SPREAD_X, lift: Math.abs(pos) ** 2 * 4 });
+    slots.push({ angle: pos * step, lift: Math.abs(pos) * drop });
   }
   return slots;
 }

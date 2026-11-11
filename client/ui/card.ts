@@ -27,28 +27,44 @@ export function cardAriaLabel(card: Card): string {
   return `${rankLabel(card.rank)} de ${SUIT_NAMES[card.suit]}`;
 }
 
+/** Suit colour class of the V1 card (`.c.sh` etc.): red for hearts and diamonds via CSS. */
+const SUIT_CLASS: Record<Suit, string> = {
+  clubs: 'sc',
+  hearts: 'sh',
+  spades: 'ss',
+  diamonds: 'sd',
+};
+
+/**
+ * A card face: rank + suit in two opposite corners and a big suit glyph in the middle.
+ * Sized entirely in `em`, so the container's `font-size` sets the card size.
+ */
 export function renderCard(
   card: Card,
   opts: { manilha?: boolean; selected?: boolean } = {},
 ): HTMLElement {
-  const root = el('div', `card ${suitColor(card.suit)}`);
-  if (opts.manilha) root.classList.add('manilha');
+  const root = el('div', `c ${SUIT_CLASS[card.suit]} ${suitColor(card.suit)}`);
+  if (opts.manilha) root.classList.add('man');
   if (opts.selected) root.classList.add('selected');
   root.dataset.cardId = card.id;
   // No role here: the hand wraps cards in buttons, which supply the role; the label stays.
   root.setAttribute('aria-label', cardAriaLabel(card));
 
-  const corner = el('div', 'card-corner');
-  corner.append(
-    el('span', 'card-rank', rankLabel(card.rank)),
-    el('span', 'card-suit', suitGlyph(card.suit)),
-  );
-  root.append(corner, el('div', 'card-pip', suitGlyph(card.suit)));
+  const glyph = suitGlyph(card.suit);
+  const corner = (pos: 'tl' | 'br'): HTMLElement => {
+    const c = el('div', `cn ${pos}`);
+    c.setAttribute('aria-hidden', 'true');
+    c.append(el('b', undefined, rankLabel(card.rank)), el('i', undefined, glyph));
+    return c;
+  };
+  const mid = el('div', 'mid', glyph);
+  mid.setAttribute('aria-hidden', 'true');
+  root.append(corner('tl'), mid, corner('br'));
   return root;
 }
 
 export function renderCardBack(): HTMLElement {
-  const root = el('div', 'card card-back');
+  const root = el('div', 'bk');
   root.setAttribute('role', 'img');
   root.setAttribute('aria-label', 'Carta virada');
   return root;

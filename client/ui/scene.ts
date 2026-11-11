@@ -1,224 +1,124 @@
-import { chairPosition, type Anchor } from './layout.js';
+import type { GameMode, Rank } from '../../shared/types.js';
+import type { HeldCard } from './animationModel.js';
+import { renderCardBack, renderTableCard } from './card.js';
 import { el } from './dom.js';
+import { seatGeometry, type Anchor } from './layout.js';
+import type { SeatModel, TableModel } from './tableModel.js';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
+/**
+ * The "Taverna de madeira" room, top-down: round red rug, team-coloured chairs, a round wooden
+ * table with a felt top, card backs in front of each opponent and avatars with name tags.
+ *
+ * Every position is a design pixel of the 390 x 844 stage, handed to CSS as a unitless custom
+ * property (`--x: 195`); the stylesheet multiplies it by `--u`, so nothing here knows the real
+ * screen size.
+ */
 
-type Attrs = Record<string, string | number>;
+/** Sets unitless design-pixel custom properties (`--x`, `--rot`, ...) on a node. */
+export function setVars(node: HTMLElement, vars: Record<string, number>): void {
+  for (const [k, v] of Object.entries(vars)) node.style.setProperty(`--${k}`, String(v));
+}
 
-function svg<K extends keyof SVGElementTagNameMap>(
-  tag: K,
-  attrs: Attrs = {},
-  children: SVGElement[] = [],
-): SVGElementTagNameMap[K] {
-  const node = document.createElementNS(SVG_NS, tag);
-  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
-  for (const child of children) node.append(child);
+function renderChair(mode: GameMode, seat: SeatModel): HTMLElement {
+  const { chair } = seatGeometry(mode, seat.anchor);
+  const node = el('div', `chair ${seat.ours ? 't1' : 't2'}`);
+  node.dataset.seat = String(seat.seat);
+  if (seat.mine) node.classList.add('mine');
+  if (!seat.connected) node.classList.add('away');
+  setVars(node, chair);
   return node;
 }
 
-/** Top-down bar table: wood top, checkered cloth patch, bottles, glasses, bowl of peanuts. */
-function tableSvg(): SVGSVGElement {
-  const defs = svg('defs', {}, [
-    svg('pattern', { id: 'cloth', width: 16, height: 16, patternUnits: 'userSpaceOnUse' }, [
-      svg('rect', { width: 16, height: 16, fill: '#f4ead2' }),
-      svg('rect', { width: 8, height: 8, fill: '#c0392b' }),
-      svg('rect', { x: 8, y: 8, width: 8, height: 8, fill: '#c0392b' }),
-    ]),
-    svg('linearGradient', { id: 'wood', x1: 0, y1: 0, x2: 1, y2: 1 }, [
-      svg('stop', { offset: 0, 'stop-color': '#8b5a2b' }),
-      svg('stop', { offset: 1, 'stop-color': '#5a3a1f' }),
-    ]),
-  ]);
+/** Avatar circle + name pill. The node carries `data-seat` so bubbles and tests can find it. */
+function renderAvatar(mode: GameMode, seat: SeatModel): HTMLElement | null {
+  const { avatar } = seatGeometry(mode, seat.anchor);
+  if (!avatar) return null;
+  const node = el('div', 'pl');
+  node.dataset.seat = String(seat.seat);
+  if (!seat.connected) node.classList.add('away');
+  setVars(node, avatar);
+  const av = el('div', `av ${seat.ours ? 'nos' : 'eles'}`, seat.initial);
+  av.setAttribute('aria-hidden', 'true');
+  if (seat.active) av.classList.add('turn');
+  const name = el('div', 'nm', seat.name);
+  name.title = seat.connected ? seat.name : `${seat.name} (desconectado)`;
+  node.append(av, name);
+  if (!seat.connected) node.append(el('div', 'off', 'offline'));
+  return node;
+}
 
-  const grain: SVGElement[] = [];
-  for (let y = 18; y < 240; y += 22) {
-    grain.push(
-      svg('path', {
-        d: `M6 ${y} Q100 ${y - 4} 194 ${y + 2}`,
-        stroke: '#3d2713',
-        'stroke-opacity': 0.35,
-        'stroke-width': 1,
-        fill: 'none',
-      }),
-    );
+/** One small card back per card still in an opponent's hand, fanned along their table edge. */
+function renderBacks(mode: GameMode, seat: SeatModel): HTMLElement {
+  const { backs } = seatGeometry(mode, seat.anchor);
+  const row = el('div', 'backs');
+  row.dataset.seat = String(seat.seat);
+  row.setAttribute('aria-label', `${seat.name}: ${String(seat.cardCount)} cartas`);
+  row.setAttribute('role', 'img');
+  setVars(row, { x: backs.x, y: backs.y, rot: backs.rot, pitch: backs.pitch });
+  const n = seat.cardCount;
+  for (let i = 0; i < n; i++) {
+    const slot = el('div', 'bw');
+    const back = renderCardBack();
+    back.removeAttribute('role');
+    back.removeAttribute('aria-label');
+    setVars(back, { r: (i - (n - 1) / 2) * backs.spread, i });
+    slot.append(back);
+    row.append(slot);
   }
-
-  const bottle = (x: number, y: number, body: string): SVGElement =>
-    svg('g', {}, [
-      svg('circle', { cx: x, cy: y, r: 7, fill: body, stroke: '#0f2a1b', 'stroke-width': 1 }),
-      svg('circle', { cx: x, cy: y, r: 3, fill: '#d9b24a' }),
-      svg('circle', { cx: x - 2, cy: y - 2, r: 1.5, fill: '#fff', 'fill-opacity': 0.5 }),
-    ]);
-
-  const glass = (x: number, y: number): SVGElement =>
-    svg('g', {}, [
-      svg('circle', { cx: x, cy: y, r: 8, fill: '#f5b631', 'fill-opacity': 0.55 }),
-      svg('circle', { cx: x, cy: y, r: 8, fill: 'none', stroke: '#fff', 'stroke-opacity': 0.7 }),
-      svg('circle', { cx: x - 2, cy: y - 3, r: 2, fill: '#fff', 'fill-opacity': 0.6 }),
-    ]);
-
-  const nuts: SVGElement[] = [
-    [0, 0],
-    [5, -3],
-    [-4, 4],
-    [3, 5],
-    [-5, -4],
-  ].map(([dx = 0, dy = 0]) =>
-    svg('ellipse', { cx: 30 + dx, cy: 212 + dy, rx: 3, ry: 2, fill: '#c98d4b', stroke: '#8b5a2b' }),
-  );
-  const bowl = svg('g', {}, [
-    svg('circle', {
-      cx: 30,
-      cy: 212,
-      r: 15,
-      fill: '#e8dcc0',
-      stroke: '#8c7b58',
-      'stroke-width': 2,
-    }),
-    svg('circle', { cx: 30, cy: 212, r: 11, fill: '#6b4a2a' }),
-    ...nuts,
-  ]);
-
-  return svg(
-    'svg',
-    {
-      class: 'scene-table-svg',
-      viewBox: '0 0 200 240',
-      preserveAspectRatio: 'xMidYMid meet',
-      'aria-hidden': 'true',
-      focusable: 'false',
-    },
-    [
-      defs,
-      svg('rect', {
-        x: 2,
-        y: 6,
-        width: 196,
-        height: 234,
-        rx: 26,
-        fill: '#000',
-        'fill-opacity': 0.35,
-      }),
-      svg('rect', { x: 2, y: 2, width: 196, height: 234, rx: 26, fill: 'url(#wood)' }),
-      ...grain,
-      svg('rect', {
-        x: 2,
-        y: 2,
-        width: 196,
-        height: 234,
-        rx: 26,
-        fill: 'none',
-        stroke: '#2b1a0c',
-        'stroke-width': 4,
-      }),
-      svg('rect', {
-        x: 28,
-        y: 36,
-        width: 144,
-        height: 166,
-        rx: 8,
-        fill: 'url(#cloth)',
-        'fill-opacity': 0.92,
-      }),
-      svg('rect', {
-        x: 28,
-        y: 36,
-        width: 144,
-        height: 166,
-        rx: 8,
-        fill: 'none',
-        stroke: '#7a1f15',
-        'stroke-width': 2,
-      }),
-      bottle(168, 24, '#1f5d3a'),
-      bottle(150, 18, '#2c7a4b'),
-      glass(24, 24),
-      glass(176, 216),
-      glass(160, 222),
-      bowl,
-    ],
-  );
+  return row;
 }
 
-/** String of bulbs along the top edge. */
-function lightsSvg(): SVGSVGElement {
-  const colours = ['#f5b631', '#c0392b', '#ffd36b', '#2c7a4b'];
-  const bulbs: SVGElement[] = [];
-  for (let i = 0; i < 10; i++) {
-    const x = 20 + i * 40;
-    const y = 14 + Math.sin((i / 9) * Math.PI) * 4;
-    bulbs.push(
-      svg('circle', {
-        class: 'bulb',
-        cx: x,
-        cy: y + 6,
-        r: 4.5,
-        fill: colours[i % colours.length] ?? '#f5b631',
-        style: `animation-delay:${(i % 4) * 0.4}s`,
-      }),
-    );
+/** A card on the felt at its owner's spot; `fly` vectors are read by the slide animation. */
+export function renderPlayed(
+  mode: GameMode,
+  anchor: Anchor,
+  card: HeldCard['card'],
+  manilha: Rank,
+  result: HeldCard['result'] | null = null,
+): HTMLElement {
+  const { played, from } = seatGeometry(mode, anchor);
+  const node = el('div', `tc${result ? ` ${result}` : ''}`);
+  node.dataset.anchor = anchor;
+  node.dataset.seat = String(card.seat);
+  setVars(node, {
+    px: played.x,
+    py: played.y,
+    pr: played.rot,
+    fx: from.x,
+    fy: from.y,
+    fr: from.rot,
+    fs: from.scale,
+  });
+  node.append(renderTableCard(card, manilha));
+  return node;
+}
+
+export function renderRoom(model: TableModel): HTMLElement {
+  const room = el('div', 'room');
+  const rug = el('div', 'rugc');
+  rug.setAttribute('aria-hidden', 'true');
+  room.append(rug);
+  for (const seat of model.seats) room.append(renderChair(model.mode, seat));
+
+  const table = el('div', 'table');
+  const rim = el('div', 'rim');
+  const felt = el('div', 'felt');
+  felt.append(el('div', 'fring'));
+  const played = el('div', 'played');
+  played.setAttribute('aria-label', 'Cartas na mesa');
+  for (const { anchor, card } of model.trick) {
+    played.append(renderPlayed(model.mode, anchor, card, model.manilha));
   }
-  return svg(
-    'svg',
-    {
-      class: 'scene-lights',
-      viewBox: '0 0 400 32',
-      preserveAspectRatio: 'none',
-      'aria-hidden': 'true',
-      focusable: 'false',
-    },
-    [
-      svg('path', {
-        d: 'M0 4 Q200 28 400 4',
-        stroke: '#1a110a',
-        'stroke-width': 1.5,
-        fill: 'none',
-      }),
-      ...bulbs,
-    ],
-  );
-}
+  felt.append(played);
+  table.append(rim, felt);
+  room.append(table);
 
-export function renderScene(): { root: HTMLElement; tableArea: HTMLElement } {
-  const root = el('div', 'scene');
-  const tv = el('div', 'scene-tv');
-  tv.setAttribute('aria-hidden', 'true');
-  const sign = el('div', 'scene-sign');
-  sign.append(el('span', 'scene-neon', 'BOTECO DO ZÉ'));
-  const tableArea = el('div', 'table-area');
-  const tableWrap = el('div', 'scene-table');
-  tableWrap.append(tableSvg());
-  tableArea.append(tableWrap);
-  root.append(tv, lightsSvg(), sign, tableArea);
-  return { root, tableArea };
-}
-
-/** Positions a chair (or any seat-anchored element) inside the table area. */
-export function placeAtAnchor(node: HTMLElement, anchor: Anchor): void {
-  const { x, y, angle } = chairPosition(anchor);
-  node.style.left = `${x}%`;
-  node.style.top = `${y}%`;
-  node.style.setProperty('--angle', `${angle}deg`);
-}
-
-export interface ChairOptions {
-  seat: number;
-  name: string;
-  team: 0 | 1;
-  mine: boolean;
-  connected: boolean;
-  active: boolean;
-}
-
-export function renderChair(anchor: Anchor, opts: ChairOptions): HTMLElement {
-  const chair = el('div', `chair anchor-${anchor} team-${opts.team}`);
-  chair.dataset.seat = String(opts.seat);
-  if (opts.mine) chair.classList.add('mine');
-  if (opts.active) chair.classList.add('turn');
-  if (!opts.connected) chair.classList.add('away');
-  const tag = el('span', 'chair-tag', opts.name);
-  tag.title = opts.name;
-  chair.append(el('span', 'chair-seat'), el('span', 'chair-back'), tag);
-  placeAtAnchor(chair, anchor);
-  return chair;
+  for (const seat of model.seats) {
+    if (!seat.mine) room.append(renderBacks(model.mode, seat));
+  }
+  for (const seat of model.seats) {
+    const avatar = renderAvatar(model.mode, seat);
+    if (avatar) room.append(avatar);
+  }
+  return room;
 }

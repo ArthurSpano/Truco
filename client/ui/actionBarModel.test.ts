@@ -93,4 +93,42 @@ describe('actionBarModel', () => {
     expect(actionBarModel(makeView({ truco }), names).banner).toBe('Beto pediu SEIS!');
     expect(actionBarModel(makeView(), names).banner).toBeNull();
   });
+
+  it('always offers the gold button, enabled only when a call is allowed', () => {
+    expect(actionBarModel(makeView({}, { callTruco: 3 }), names).button).toEqual({
+      label: 'TRUCO!',
+      sub: 'vale 3',
+      enabled: true,
+    });
+    expect(actionBarModel(makeView({ value: 3 }), names).button).toEqual({
+      label: 'SEIS!',
+      sub: 'vale 6',
+      enabled: false,
+    });
+    expect(actionBarModel(makeView({ value: 12 }), names).button).toEqual({
+      label: 'VALE 12',
+      sub: 'máximo',
+      enabled: false,
+    });
+  });
+
+  it('labels the disabled button for a pending call and the no-truco hands', () => {
+    const truco = { caller: 0, team: 0 as Team, stake: 3 };
+    expect(actionBarModel(makeView({ truco }), names).button.label).toBe('AGUARDE');
+    expect(actionBarModel(makeView({ maoDeFerro: true }), names).button).toMatchObject({
+      label: 'MÃO DE FERRO',
+      enabled: false,
+    });
+    const m11 = { team: 0 as Team, decision: 'play' as const };
+    expect(actionBarModel(makeView({ maoDeOnze: m11, value: 3 }), names).button.label).toBe(
+      'MÃO DE ONZE',
+    );
+  });
+
+  it('asks the answering team who called what', () => {
+    const truco = { caller: 1, team: 1 as Team, stake: 6 };
+    const m = actionBarModel(makeView({ truco }, { respond: { raise: 9 } }), names);
+    expect(m.ask).toEqual({ name: 'Beto', what: 'SEIS', to: 6 });
+    expect(actionBarModel(makeView({ truco }), names).ask).toBeNull();
+  });
 });

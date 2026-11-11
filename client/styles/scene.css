@@ -1,239 +1,310 @@
-/* Boteco scene: tiled floor, neon, string lights, TV glow, table and plastic chairs. */
-.scene {
-  --chair: 46px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-height: 100dvh;
-  overflow: hidden;
-  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
-  background:
-    radial-gradient(ellipse at 50% 35%, rgb(245 182 49 / 0.22), transparent 70%),
-    repeating-conic-gradient(#30556a 0 25%, #e8dcc0 0 50%) 0 0 / 56px 56px;
-}
+/*
+ * "Taverna de madeira" (V1) room, seen from above. All lengths are design pixels of the
+ * 390 x 844 artboard times --u (base.css). Per-seat positions come from ui/layout.ts as unitless
+ * custom properties (--x, --y, --w, --h, --rot ...), set inline by ui/scene.ts.
+ */
 
-.scene::after {
-  content: '';
-  position: absolute;
+/* Full-viewport floor; the artboard is centred on it. */
+.v1.table-screen {
+  position: fixed;
   inset: 0;
-  pointer-events: none;
-  /* Vignette keeps the tiles from fighting the cards. */
-  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgb(20 10 4 / 0.7));
-}
-
-.scene > * {
-  position: relative;
-  z-index: 1;
-}
-
-.scene-tv {
-  position: absolute;
-  top: 18%;
-  right: -30%;
-  width: 70%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(110 180 255 / 0.35), transparent 65%);
-  pointer-events: none;
-  animation: tv-flicker 3.2s steps(2, end) infinite;
-  z-index: 0;
-}
-
-.scene-lights {
-  display: block;
-  width: 100%;
-  height: 28px;
-}
-
-.bulb {
-  filter: drop-shadow(0 0 4px rgb(255 211 107 / 0.9));
-  animation: twinkle 2.4s ease-in-out infinite;
-}
-
-.scene-sign {
-  align-self: center;
-  margin: 0.2rem 0 0.4rem;
-  padding: 0.15rem 0.9rem;
-  border: 2px solid var(--amber-glow);
-  border-radius: 10px;
-  background: rgb(20 10 4 / 0.8);
-  box-shadow:
-    0 0 10px var(--amber),
-    inset 0 0 8px rgb(192 57 43 / 0.6);
-}
-
-.scene-neon {
-  font-size: clamp(1.1rem, 6vw, 1.7rem);
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-  color: #fff4d6;
-  text-shadow:
-    0 0 3px var(--amber-glow),
-    0 0 10px var(--amber),
-    0 0 22px var(--red);
-}
-
-/* Chairs hang 16px outside the percent box, so inset it from the viewport edges. */
-.table-area {
-  position: relative;
-  flex: 1;
-  width: calc(100% - 32px);
-  max-width: 30rem;
-  min-height: 24rem;
-  margin: 0 auto 0.5rem;
-}
-
-.scene-table {
-  position: absolute;
-  inset: 13% 12%;
-  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 0.5));
-}
-
-.scene-table-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* Plastic stackable chair. Rotation comes from --angle (0 = facing up, back at the bottom). */
-.chair {
-  --angle: 0deg;
-  position: absolute;
-  z-index: 2;
-  width: var(--chair);
-  height: var(--chair);
-  transform: translate(-50%, -50%) rotate(var(--angle));
-  --plastic: #d63a2c;
-  --plastic-dark: #8f2218;
-  transition: opacity 0.2s ease;
-}
-
-.chair.team-1 {
-  --plastic: #f1ede2;
-  --plastic-dark: #a9a496;
-}
-
-.chair-seat,
-.chair-back {
-  position: absolute;
-  display: block;
-  background: var(--plastic);
-  border: 2px solid var(--plastic-dark);
-  box-shadow: 0 3px 5px rgb(0 0 0 / 0.45);
-}
-
-.chair-seat {
-  inset: 0 3px 9px;
-  border-radius: 10px 10px 8px 8px;
-}
-
-.chair-back {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 12px;
-  border-radius: 6px;
-}
-
-.chair.mine .chair-seat,
-.chair.mine .chair-back {
-  border-color: var(--amber-glow);
-  box-shadow:
-    0 0 8px var(--amber),
-    0 3px 5px rgb(0 0 0 / 0.45);
-}
-
-.chair.away {
-  opacity: 0.45;
-}
-
-/* The tag cancels the chair rotation so names stay upright and readable. */
-.chair-tag {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  max-width: 68px;
-  padding: 1px 6px;
   overflow: hidden;
-  border-radius: 8px;
-  background: rgb(20 10 4 / 0.85);
-  color: var(--cream);
-  font-size: 0.7rem;
-  font-weight: 800;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transform: translate(-50%, -50%) rotate(calc(-1 * var(--angle)));
-  pointer-events: none;
-}
-
-.chair.mine .chair-tag {
-  background: var(--amber);
+  font-family: var(--font);
+  font-synthesis: none;
   color: var(--ink);
 }
 
-.chair.turn {
-  --wiggle: 5deg;
-  --wiggle-time: 0.9s;
-  animation: chair-wiggle var(--wiggle-time) ease-in-out infinite;
+.v1 .stage {
+  position: absolute;
+  left: var(--stage-x);
+  top: var(--stage-y);
+  width: calc(390 * var(--u));
+  height: calc(844 * var(--u));
 }
 
-/* Your own turn: a bigger, quicker wiggle. */
-.chair.mine.turn {
-  --wiggle: 9deg;
-  --wiggle-time: 0.6s;
+.v1 .scene-host,
+.v1 .scene,
+.v1 .room,
+.v1 .fx-layer {
+  position: absolute;
+  inset: 0;
 }
 
-/* The tag counter-rotates by the same amount so the name stays upright while the chair wiggles. */
-.chair.turn .chair-tag {
-  animation: tag-steady var(--wiggle-time) ease-in-out infinite;
+.v1 .scene-host {
+  z-index: 0;
 }
 
-@keyframes chair-wiggle {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) rotate(var(--angle));
-  }
-  25% {
-    transform: translate(-50%, -50%) rotate(calc(var(--angle) - var(--wiggle)));
-  }
-  75% {
-    transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--wiggle)));
-  }
+.v1 .fx-layer {
+  z-index: 1;
+  pointer-events: none;
 }
 
-@keyframes tag-steady {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) rotate(calc(-1 * var(--angle)));
-  }
-  25% {
-    transform: translate(-50%, -50%) rotate(calc(-1 * var(--angle) + var(--wiggle)));
-  }
-  75% {
-    transform: translate(-50%, -50%) rotate(calc(-1 * var(--angle) - var(--wiggle)));
-  }
+/* Vignette over the whole viewport (V1 `.glow`). */
+.v1 .glow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgb(25 10 0 / 0.7) 100%);
 }
 
-@keyframes twinkle {
-  50% {
-    opacity: 0.55;
-  }
+.v1 .overlay-host {
+  position: relative;
+  z-index: 3;
 }
 
-@keyframes tv-flicker {
-  50% {
-    opacity: 0.7;
-  }
+/* Round red rug under the table. */
+.v1 .rugc {
+  position: absolute;
+  left: calc(-3 * var(--u));
+  top: calc(212 * var(--u));
+  width: calc(396 * var(--u));
+  height: calc(396 * var(--u));
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    #b3202a 0 calc(14 * var(--u)),
+    #9a1b25 calc(14 * var(--u)) calc(28 * var(--u))
+  );
+  border: calc(6 * var(--u)) solid #f1d9a0;
+  box-shadow:
+    0 0 0 calc(4 * var(--u)) #5c1218,
+    0 calc(14 * var(--u)) calc(30 * var(--u)) rgb(0 0 0 / 0.55),
+    inset 0 0 0 calc(10 * var(--u)) #5c1218,
+    inset 0 0 0 calc(13 * var(--u)) #d9b24a;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .chair.turn,
-  .chair.turn .chair-tag,
-  .bulb,
-  .scene-tv {
-    animation: none;
-  }
+/* Chairs, coloured by team: amber for Nós (t1), red for Eles (t2). */
+.v1 .chair {
+  position: absolute;
+  left: calc((var(--x) - var(--w) / 2) * var(--u));
+  top: calc((var(--y) - var(--h) / 2) * var(--u));
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--u));
+  border-radius: calc(32 * var(--u));
+  border: calc(5 * var(--u)) solid var(--ink);
+  box-shadow: 0 calc(8 * var(--u)) 0 rgb(20 6 50 / 0.45);
+  transform: rotate(calc(var(--rot) * 1deg));
+  filter: saturate(1.15);
+}
+.v1 .chair::after {
+  content: '';
+  position: absolute;
+  inset: calc(9 * var(--u));
+  border-radius: calc(22 * var(--u));
+  border: calc(3 * var(--u)) dashed rgb(255 255 255 / 0.7);
+}
+.v1 .chair.t1 {
+  background: radial-gradient(circle at 35% 28%, #f0b85a, #d98d2b 72%);
+}
+.v1 .chair.t2 {
+  background: radial-gradient(circle at 35% 28%, #c8454d, #8e1f2a 72%);
+}
+.v1 .chair.away {
+  filter: saturate(0.4) brightness(0.8);
+}
+
+/* Round wooden table: rim, felt, dashed ring. */
+.v1 .table {
+  position: absolute;
+  left: calc(30 * var(--u));
+  top: calc(245 * var(--u));
+  width: calc(330 * var(--u));
+  height: calc(330 * var(--u));
+}
+.v1 .rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: calc(5 * var(--u)) solid var(--ink);
+  background:
+    radial-gradient(
+      ellipse calc(70 * var(--u)) calc(26 * var(--u)) at 30% 15%,
+      rgb(255 255 255 / 0.55),
+      transparent
+    ),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgb(150 70 10 / 0.16) 0 calc(3 * var(--u)),
+      transparent calc(3 * var(--u)) calc(22 * var(--u))
+    ),
+    radial-gradient(circle at 40% 30%, #ffc36d, #f0983c 70%, #d97a26);
+  box-shadow:
+    0 calc(12 * var(--u)) 0 calc(4 * var(--u)) rgb(20 6 50 / 0.45),
+    inset 0 calc(-10 * var(--u)) 0 rgb(150 70 10 / 0.25),
+    inset 0 calc(6 * var(--u)) 0 rgb(255 255 255 / 0.35);
+  filter: saturate(1.15);
+}
+.v1 .felt {
+  position: absolute;
+  left: calc(28 * var(--u));
+  top: calc(28 * var(--u));
+  width: calc(274 * var(--u));
+  height: calc(274 * var(--u));
+  border-radius: 50%;
+  overflow: hidden;
+  border: calc(5 * var(--u)) solid var(--ink);
+  background: radial-gradient(circle at 50% 38%, #3fd3a8, #22b08a 60%, #169478);
+  box-shadow: inset 0 calc(10 * var(--u)) 0 rgb(0 0 0 / 0.18);
+  filter: saturate(1.15);
+}
+.v1 .felt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse calc(90 * var(--u)) calc(40 * var(--u)) at 30% 16%,
+    rgb(255 255 255 / 0.25),
+    transparent
+  );
+  pointer-events: none;
+}
+.v1 .fring {
+  position: absolute;
+  inset: calc(22 * var(--u));
+  border-radius: 50%;
+  border: calc(3 * var(--u)) dashed rgb(255 255 255 / 0.5);
+}
+
+/*
+ * Played cards. `.played` fills the felt; `.hold` (the finished trick, in the fx layer) is a
+ * zero-size box at the table centre. Either way each `.tc` is centred on that point and moved to
+ * its owner's spot (--px, --py, --pr).
+ */
+.v1 .played {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.v1 .hold {
+  position: absolute;
+  left: calc(195 * var(--u));
+  top: calc(410 * var(--u));
+  width: 0;
+  height: 0;
+}
+.v1 .tc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: calc(10.4 * var(--u));
+  margin: -3.875em 0 0 -2.7em;
+  transform: translate(calc(var(--px) * var(--u)), calc(var(--py) * var(--u)))
+    rotate(calc(var(--pr) * 1deg));
+}
+.v1 .mode-6 .tc,
+.v1 .hold.mode-6 .tc {
+  font-size: calc(8.6 * var(--u));
+}
+.v1 .tc.win .c,
+.v1 .tc.win .bk {
+  box-shadow:
+    0 0.25em 0.6em rgb(0 0 0 / 0.35),
+    0 0 0 0.18em #d9b24a,
+    0 0 1.6em 0.4em rgb(255 215 100 / 0.85);
+}
+.v1 .tc.lose {
+  opacity: 0.6;
+  transition: opacity 0.4s;
+}
+.v1 .tc.tie .c,
+.v1 .tc.tie .bk {
+  box-shadow:
+    0 0.25em 0.6em rgb(0 0 0 / 0.35),
+    0 0 0 0.18em var(--cream);
+}
+
+/* Opponents' card backs, fanned along their edge of the table. */
+.v1 .backs {
+  position: absolute;
+  z-index: 4;
+  left: calc(var(--x) * var(--u));
+  top: calc(var(--y) * var(--u));
+  width: 0;
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(calc(var(--rot) * 1deg));
+  pointer-events: none;
+}
+.v1 .backs .bw {
+  position: relative;
+  flex: none;
+  width: calc(var(--pitch) * var(--u));
+  height: calc(54 * var(--u));
+}
+.v1 .backs .bk {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: calc(7 * var(--u));
+  margin: -3.875em 0 0 -2.7em;
+  transform: rotate(calc(var(--r) * 1deg));
+}
+
+/* Avatars with name pills (the viewer has none: the hand stands in for them). */
+.v1 .pl {
+  position: absolute;
+  z-index: 5;
+  left: calc(var(--x) * var(--u));
+  top: calc(var(--y) * var(--u));
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(5 * var(--u));
+}
+.v1 .av {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
+  border-radius: 50%;
+  border: calc(3 * var(--u)) solid var(--ink);
+  box-shadow: 0 calc(4 * var(--u)) 0 rgb(20 6 50 / 0.5);
+  font-size: calc(21 * var(--u));
+  color: var(--ink);
+}
+.v1 .av.nos {
+  background: radial-gradient(circle at 35% 28%, #ffeaa0, #ffc23d);
+}
+.v1 .av.eles {
+  background: radial-gradient(circle at 35% 28%, #ffb0c4, #ff5f86);
+}
+.v1 .av.turn {
+  box-shadow:
+    0 0 0 calc(4 * var(--u)) var(--cream),
+    0 0 0 calc(7 * var(--u)) var(--gold),
+    0 calc(4 * var(--u)) 0 calc(7 * var(--u)) rgb(20 6 50 / 0.5);
+  animation: hop 0.7s cubic-bezier(0.3, 1.5, 0.5, 1) infinite alternate;
+}
+.v1 .nm {
+  max-width: calc(120 * var(--u));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 calc(9 * var(--u));
+  border-radius: 99px;
+  border: calc(3 * var(--u)) solid var(--ink);
+  background: var(--cream);
+  color: var(--ink);
+  font-size: calc(12 * var(--u));
+  line-height: 1.35;
+}
+.v1 .pl.away .av,
+.v1 .pl.away .nm {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+.v1 .pl .off {
+  padding: 0 calc(6 * var(--u));
+  border-radius: 99px;
+  background: var(--ink);
+  color: var(--cream);
+  font-size: calc(9 * var(--u));
+  letter-spacing: 0.08em;
 }

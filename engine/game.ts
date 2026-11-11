@@ -4,6 +4,7 @@ import type {
   GameIntent,
   GameMode,
   GameView,
+  HandEndReason,
   Seat,
   Team,
 } from '../shared/types.js';
@@ -149,11 +150,17 @@ function playEvents(before: HandState, after: HandState, seat: Seat): GameEvent[
     events.push({
       t: 'trick_won',
       winner: completed.result.winner,
+      winnerSeat: completed.result.winner === null ? null : completed.result.leader,
       leader: completed.result.leader,
       cards: completed.plays.map(tableCard),
     });
   }
   return events;
+}
+
+function handEndReason(hand: HandState): HandEndReason {
+  if (hand.ranBy === null) return 'tricks';
+  return hand.maoDeOnze?.decision === 'run' ? 'mao_de_onze_run' : 'truco_run';
 }
 
 /** Scores the decided hand, then either ends the match or deals the next hand. */
@@ -166,7 +173,15 @@ function finish(state: GameState, winner: Team, events: GameEvent[]): IntentResu
 
   const out: GameEvent[] = [
     ...events,
-    { t: 'hand_won', team: winner, points: state.hand.value, ranBy: state.hand.ranBy, scores },
+    {
+      t: 'hand_won',
+      team: winner,
+      points: state.hand.value,
+      ranBy: state.hand.ranBy,
+      reason: handEndReason(state.hand),
+      tricks: state.hand.tricks.map((t) => t.result.winner),
+      scores,
+    },
   ];
   if (next.winner !== null) {
     out.push({ t: 'match_won', team: next.winner, scores });
@@ -216,7 +231,11 @@ export function viewFor(state: GameState, seat: Seat): GameView {
       cards: visible.has(s) ? cards.map((card) => ({ ...card })) : null,
     })),
     trick: hand.trick.map(tableCard),
-    tricks: hand.tricks.map((t) => ({ cards: t.plays.map(tableCard), winner: t.result.winner })),
+    tricks: hand.tricks.map((t) => ({
+      cards: t.plays.map(tableCard),
+      winner: t.result.winner,
+      winnerSeat: t.result.winner === null ? null : t.result.leader,
+    })),
     winner: state.winner,
     actions: actionsFor(state, seat),
   };

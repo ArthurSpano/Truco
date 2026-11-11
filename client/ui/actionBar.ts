@@ -4,61 +4,65 @@ import { el } from './dom.js';
 import type { SendLatch } from './hand.js';
 
 /**
- * The truco action bar. Renders only what the model offers; every send goes through the
- * table-wide latch so a double tap sends once.
+ * The truco controls. Normally the bar with the big gold TRUCO / SEIS / NOVE / DOZE button
+ * (disabled, with the reason underneath, when no call is allowed). When the viewer may answer a
+ * call it is replaced by the response sheet: Correr / Aceitar / raise. Every send goes through
+ * the table-wide latch so a double tap sends once.
  */
 export function renderActionBar(
   model: ActionBarModel,
   send: (m: ClientMessage) => void,
   latch: SendLatch = { pending: false },
-  /** Phase note (mão de onze / ferro); those phases never have buttons, so it sits in the bar. */
-  note: HTMLElement | null = null,
+  /** The hand's face-down toggle, shown beside the gold button when it is offered. */
+  toggle: HTMLElement | null = null,
 ): HTMLElement {
-  const bar = el('div', 'action-bar');
-  if (model.banner) {
-    const banner = el('p', 'truco-banner', model.banner);
-    banner.setAttribute('role', 'status');
-    bar.append(banner);
-  }
-  const row = el('div', 'action-row');
-
   const buttons: HTMLButtonElement[] = [];
-  const button = (
-    text: string | [string, string],
-    cls: string,
-    msg: ClientMessage,
-    aria?: string,
-  ): void => {
-    const b = el('button', `btn action-btn ${cls}`);
-    if (typeof text === 'string') b.textContent = text;
-    else b.append(el('span', 'action-small', text[0]), el('span', 'action-big', text[1]));
+  const button = (cls: string, msg: ClientMessage, aria?: string): HTMLButtonElement => {
+    const b = el('button', `btn ${cls}`);
     b.type = 'button';
     if (aria) b.setAttribute('aria-label', aria);
     if (latch.pending) b.setAttribute('aria-disabled', 'true');
     buttons.push(b);
     b.addEventListener('click', () => {
-      if (latch.pending) return;
+      if (latch.pending || b.disabled) return;
       latch.pending = true;
       for (const other of buttons) other.setAttribute('aria-disabled', 'true');
       send(msg);
     });
-    row.append(b);
+    return b;
   };
 
-  if (model.call) button(`${model.call.label}!`, 'primary call', { t: 'call_truco' });
-  if (model.respond) {
-    button('Aceitar', 'accept', { t: 'respond', answer: 'accept' });
-    button('Correr', 'run', { t: 'respond', answer: 'run' });
-    if (model.respond.raise)
-      button(
-        ['Aumentar', model.respond.raise.name],
-        'raise primary',
-        { t: 'respond', answer: 'raise' },
-        model.respond.raise.label,
-      );
+  if (model.respond && model.ask) {
+    const sheet = el('div', 'sheet glass');
+    sheet.setAttribute('role', 'group');
+    sheet.setAttribute('aria-label', 'Responder ao truco');
+    const q = el('div', 'q');
+    q.append(
+      `${model.ask.name} pede `,
+      el('b', undefined, model.ask.what),
+      ` — vale ${model.ask.to}`,
+    );
+    const row = el('div', 'row');
+    const run = button('red', { t: 'respond', answer: 'run' });
+    run.textContent = 'Correr';
+    const accept = button('grn', { t: 'respond', answer: 'accept' });
+    accept.textContent = 'Aceitar';
+    row.append(run, accept);
+    const raise = model.respond.raise;
+    if (raise) {
+      const up = button('gold', { t: 'respond', answer: 'raise' }, raise.label);
+      up.textContent = `${raise.name}!`;
+      row.append(up);
+    }
+    sheet.append(q, row);
+    return sheet;
   }
-  if (row.childElementCount > 0) bar.append(row);
-  if (model.waiting) bar.append(el('p', 'truco-waiting', model.waiting));
-  if (note) bar.append(note);
+
+  const bar = el('div', 'bar');
+  if (toggle) bar.append(toggle);
+  const gold = button('gold truco', { t: 'call_truco' });
+  gold.disabled = !model.button.enabled;
+  gold.append(el('span', undefined, model.button.label), el('small', undefined, model.button.sub));
+  bar.append(gold);
   return bar;
 }

@@ -1,13 +1,15 @@
 import type { Bubble } from './bubbleModel.js';
 import { el } from './dom.js';
+import type { SeatGeometry } from './layout.js';
+import { setVars } from './scene.js';
 
-const SHOW_MS = 900;
-const MARGIN = 8;
+const SHOW_MS = 1300;
 
 /**
- * Speech bubbles over the chairs. Mounts into a persistent full-screen fixed layer and
- * positions each bubble from its chair's viewport rect at show time. Bubbles queue so two that
- * arrive together appear one after the other.
+ * Speech bubbles next to each player's avatar (V1 `.bub`). Mounts into the persistent fx layer
+ * inside the scaled stage, so a bubble is placed with the same design-pixel geometry as the
+ * seats and never needs measuring. Bubbles queue so two that arrive together appear one after
+ * the other.
  */
 export class BubbleLayer {
   private readonly queue: Bubble[] = [];
@@ -17,7 +19,8 @@ export class BubbleLayer {
 
   constructor(
     private readonly host: HTMLElement,
-    private readonly anchorOf: (seat: number) => HTMLElement | null,
+    /** Bubble box for a seat at the current table, or null if that seat is not on it. */
+    private readonly placeOf: (seat: number) => SeatGeometry['bubble'] | null,
   ) {}
 
   show(b: Bubble): void {
@@ -37,29 +40,16 @@ export class BubbleLayer {
 
   private next(): void {
     let b: Bubble | undefined;
-    let anchor: HTMLElement | null = null;
+    let place: SeatGeometry['bubble'] | null = null;
     // Skip bubbles whose seat is not on the table right now.
     while ((b = this.queue.shift())) {
-      anchor = this.anchorOf(b.seat);
-      if (anchor) break;
+      place = this.placeOf(b.seat);
+      if (place) break;
     }
-    if (!b || !anchor) return;
-    const rect = anchor.getBoundingClientRect();
-    const node = el('div', `bubble bubble-${b.kind}`);
-    node.append(el('span', 'bubble-text', b.text));
+    if (!b || !place) return;
+    const node = el('div', `bub bub-${b.kind} align-${place.align}`, b.text);
+    setVars(node, { x: place.x, y: place.y });
     this.host.append(node);
-    // Measure in place, then clamp: horizontally inside the viewport, and below the chair when
-    // there is no room above it (the bubble is translated by (-50%, -100%) from left/top).
-    const w = node.offsetWidth;
-    const h = node.offsetHeight;
-    const vw = window.innerWidth;
-    const cx = rect.left + rect.width / 2;
-    const x =
-      w + 2 * MARGIN >= vw ? vw / 2 : Math.min(Math.max(cx, w / 2 + MARGIN), vw - w / 2 - MARGIN);
-    const top = safeTop() + MARGIN;
-    const y = rect.top - h < top ? rect.bottom + h : rect.top;
-    node.style.left = `${String(x)}px`;
-    node.style.top = `${String(y)}px`;
     this.active = node;
     this.timer = setTimeout(() => {
       node.remove();
@@ -68,15 +58,4 @@ export class BubbleLayer {
       this.next();
     }, SHOW_MS);
   }
-}
-
-/** Top safe-area inset in px (0 where unsupported). */
-function safeTop(): number {
-  const probe = document.createElement('div');
-  probe.style.cssText =
-    'position:fixed;top:0;visibility:hidden;padding-top:env(safe-area-inset-top)';
-  document.body.append(probe);
-  const px = parseFloat(getComputedStyle(probe).paddingTop) || 0;
-  probe.remove();
-  return px;
 }

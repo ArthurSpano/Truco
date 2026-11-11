@@ -1,87 +1,116 @@
 /*
- * Cards are sized only by --card-w, so hand, table and opponents share one renderer.
- * The default lives on :root; a container resizes its cards by setting --card-w on
- * itself (e.g. `.hand { --card-w: 90px }`). Never redeclare it on `.card`.
+ * V1 cards. Everything is in `em`, so a container sizes its cards with `font-size`
+ * (hand 15.5 design px, table 10.4, vira 7.4, opponents' backs 7). 1em of card = 1 design px
+ * times --u, so cards scale with the stage.
  */
-:root {
-  --card-w: clamp(56px, 18vw, 84px);
-}
-
-.card {
+.c,
+.bk {
   position: relative;
-  display: inline-block;
-  flex: none;
+  width: 5.4em;
+  height: 7.75em;
   box-sizing: border-box;
-  width: var(--card-w);
-  aspect-ratio: 5 / 7;
-  border-radius: calc(var(--card-w) * 0.1);
-  background: var(--cream);
-  border: 1px solid #c9b88f;
-  box-shadow: 0 2px 5px rgb(0 0 0 / 45%);
-  color: var(--ink);
-  font-size: calc(var(--card-w) * 0.26);
-  font-weight: 800;
-  line-height: 1;
+  border-radius: 0.55em;
   user-select: none;
-  touch-action: manipulation;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
 }
 
-.card.red {
-  color: var(--red);
+.c {
+  background: linear-gradient(160deg, #fffdf7, #f3ecdc);
+  border: 0.06em solid rgb(60 40 20 / 0.35);
+  font-family: 'TrucoLight', 'TrucoToon', sans-serif;
+  color: #1a1a1f;
+  box-shadow:
+    0 0.25em 0.6em rgb(0 0 0 / 0.35),
+    0 0.06em 0.12em rgb(0 0 0 / 0.3),
+    inset 0 0 0 0.05em rgb(255 255 255 / 0.9);
 }
 
-.card-corner {
+/* Thin gold frame inside the face. */
+.c::after {
+  content: '';
   position: absolute;
-  top: 6%;
-  left: 8%;
+  inset: 0.38em;
+  border: 0.05em solid rgb(160 120 50 / 0.45);
+  border-radius: 0.3em;
+  pointer-events: none;
+}
+
+.c.sd,
+.c.sh {
+  color: #b3202a;
+}
+.c.ss,
+.c.sc {
+  color: #1a1a1f;
+}
+
+/* Manilha: gold ring and warm glow. */
+.c.man {
+  box-shadow:
+    0 0.25em 0.6em rgb(0 0 0 / 0.35),
+    0 0 0 0.12em #d9b24a,
+    0 0 1em 0.25em rgb(230 190 80 / 0.6);
+}
+
+.c .cn {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2%;
+  line-height: 1;
+}
+.c .cn b {
+  font-size: 1.5em;
+  font-weight: 400;
+}
+.c .cn i {
+  font-style: normal;
+  font-size: 1.1em;
+  margin-top: 0.08em;
+}
+.c .cn.tl {
+  left: 0.5em;
+  top: 0.42em;
+}
+.c .cn.br {
+  right: 0.5em;
+  bottom: 0.42em;
+  transform: rotate(180deg);
 }
 
-.card-suit {
-  font-size: 0.8em;
-}
-
-.card-pip {
+.c .mid {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 12%;
-  font-size: calc(var(--card-w) * 0.62);
+  font-size: 3em;
+  line-height: 1;
 }
 
-.card.selected {
-  transform: translateY(calc(var(--card-w) * -0.25));
-  box-shadow: 0 6px 12px rgb(0 0 0 / 55%);
-}
-
-.card.manilha {
-  border-color: var(--amber);
-  box-shadow:
-    0 0 0 2px var(--amber),
-    0 0 12px 2px var(--amber-glow);
-}
-
-.card-back {
+/* Card back: navy with a gold lattice and a cream border. */
+.bk {
+  border: 0.06em solid rgb(20 10 30 / 0.6);
   background:
-    linear-gradient(45deg, transparent 46%, var(--cream) 46% 54%, transparent 54%) 0 0 /
-      calc(var(--card-w) * 0.2) calc(var(--card-w) * 0.2),
-    linear-gradient(-45deg, transparent 46%, var(--cream) 46% 54%, transparent 54%) 0 0 /
-      calc(var(--card-w) * 0.2) calc(var(--card-w) * 0.2),
-    var(--red);
-  border: calc(var(--card-w) * 0.06) solid var(--cream);
-  outline: 1px solid #8e2a20;
-  outline-offset: calc(var(--card-w) * -0.06);
+    linear-gradient(45deg, transparent 46%, rgb(217 178 74 / 0.35) 47% 53%, transparent 54%) 0 0 /
+      0.9em 0.9em,
+    linear-gradient(-45deg, transparent 46%, rgb(217 178 74 / 0.35) 47% 53%, transparent 54%) 0 0 /
+      0.9em 0.9em,
+    linear-gradient(160deg, #243a7a, #16224f);
+  box-shadow:
+    inset 0 0 0 0.3em #f6efdc,
+    inset 0 0 0 0.36em #16224f,
+    0 0.25em 0.6em rgb(0 0 0 / 0.4);
 }
 
-.card.encoberta {
-  opacity: 0.85;
-  filter: saturate(0.8) brightness(0.9);
+/* A face-down (encoberta) card on the table: a back, slightly dimmed. */
+.bk.encoberta {
+  filter: brightness(0.9) saturate(0.85);
+}
+
+/* Hand and vira sizes (design px; see the stage scale in base.css). */
+.c-h {
+  font-size: calc(15.5 * var(--u));
+}
+.c-v {
+  font-size: calc(7.4 * var(--u));
 }

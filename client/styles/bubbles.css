@@ -1,75 +1,64 @@
-/* Speech bubbles: loud, outlined, slightly tilted. Live inside the fixed .fx-layer. */
-.bubble {
-  position: fixed;
-  transform: translate(-50%, -100%) rotate(-4deg);
-  max-width: 90vw;
-  padding: 0.1em 0.5em;
-  border-radius: 0.5em;
-  background: var(--cream, #fff4d6);
-  color: #b3141c;
-  font-family: Impact, 'Arial Narrow Bold', 'Arial Narrow', sans-serif;
-  font-stretch: condensed;
-  font-weight: 900;
-  font-size: 1.6rem;
-  line-height: 1.1;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+/*
+ * Speech bubbles (V1 `.bub`): cream box with an ink outline and a tail, popping in next to the
+ * speaker's avatar. Placed in design px (--x, --y) inside the stage's fx layer.
+ */
+.v1 .bub {
+  position: absolute;
+  z-index: 30;
+  top: calc(var(--y) * var(--u));
+  font-size: calc(15 * var(--u));
+  color: var(--ink);
+  background: var(--cream);
+  border: calc(3 * var(--u)) solid var(--ink);
+  padding: calc(5 * var(--u)) calc(14 * var(--u));
+  border-radius: calc(16 * var(--u));
+  box-shadow: 0 calc(4 * var(--u)) 0 rgb(20 6 50 / 0.5);
   white-space: nowrap;
   pointer-events: none;
-  border: 3px solid #2a1406;
-  -webkit-text-stroke: 1px #2a1406;
-  paint-order: stroke fill;
-  text-shadow: 2px 2px 0 rgb(0 0 0 / 0.35);
-  box-shadow: 0 4px 0 #2a1406;
-  animation: bubble-pop 0.9s ease-out both;
+  animation: bubPop 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.v1 .bub::after {
+  content: '';
+  position: absolute;
+  bottom: calc(-9 * var(--u));
+  width: calc(11 * var(--u));
+  height: calc(11 * var(--u));
+  background: inherit;
+  border: calc(3 * var(--u)) solid var(--ink);
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(45deg);
 }
 
-.bubble-call {
-  font-size: 2.6rem;
-  transform: translate(-50%, -100%) rotate(3deg);
-  background: #ffd23f;
+.v1 .bub.align-left {
+  left: calc(var(--x) * var(--u));
+}
+.v1 .bub.align-left::after {
+  left: calc(16 * var(--u));
+}
+.v1 .bub.align-right {
+  right: calc((390 - var(--x)) * var(--u));
+}
+.v1 .bub.align-right::after {
+  right: calc(16 * var(--u));
+}
+.v1 .bub.align-center {
+  left: calc(var(--x) * var(--u));
+  translate: -50% 0;
+}
+.v1 .bub.align-center::after {
+  left: 50%;
+  margin-left: calc(-7 * var(--u));
 }
 
-.bubble-accept {
-  color: #1d6b2f;
+/* Calls are shouted: gold and a bit bigger. Answers keep the cream box. */
+.v1 .bub-call {
+  font-size: calc(19 * var(--u));
+  background: var(--gold);
 }
-
-.bubble-run {
-  color: #5a3a1a;
+.v1 .bub-accept {
+  color: #13704a;
 }
-
-@keyframes bubble-pop {
-  0% {
-    opacity: 0;
-    scale: 0.4;
-  }
-  15% {
-    opacity: 1;
-    scale: 1.2;
-  }
-  30% {
-    scale: 1;
-  }
-  85% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bubble {
-    animation: bubble-fade 0.9s linear both;
-  }
-
-  @keyframes bubble-fade {
-    0%,
-    85% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
+.v1 .bub-run {
+  color: #b3202a;
 }

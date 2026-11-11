@@ -166,6 +166,7 @@ describe('applyIntent', () => {
     expect(events.at(-1)).toEqual({
       t: 'trick_won',
       winner: 0,
+      winnerSeat: 0,
       leader: 0,
       cards: HANDS.slice(0, 4).map((ids, seat) => ({
         seat,
@@ -181,7 +182,15 @@ describe('applyIntent', () => {
     const game = gameAt(4);
     const { state, events } = run(game, [...trickSteps(4, 0), ...trickSteps(4, 1)]);
     expect(events.slice(-2)).toEqual([
-      { t: 'hand_won', team: 0, points: 1, ranBy: null, scores: [1, 0] },
+      {
+        t: 'hand_won',
+        team: 0,
+        points: 1,
+        ranBy: null,
+        reason: 'tricks',
+        tricks: [0, null],
+        scores: [1, 0],
+      },
       { t: 'hand_dealt', handNumber: 2, dealer: 0, maoDeOnze: null, maoDeFerro: false },
     ]);
     expect(state.scores).toEqual([1, 0]);
@@ -233,7 +242,15 @@ describe('applyIntent', () => {
       expect(events).toEqual([
         { t: 'truco_called', seat: 0, stake: 3 },
         { t: 'truco_answered', seat: 1, answer: 'run', stake: 3 },
-        { t: 'hand_won', team: 0, points: 1, ranBy: 1, scores: [4, 4] },
+        {
+          t: 'hand_won',
+          team: 0,
+          points: 1,
+          ranBy: 1,
+          reason: 'truco_run',
+          tricks: [],
+          scores: [4, 4],
+        },
         { t: 'hand_dealt', handNumber: 2, dealer: 0, maoDeOnze: null, maoDeFerro: false },
       ]);
       expect(state.scores).toEqual([4, 4]);
@@ -269,7 +286,15 @@ describe('applyIntent', () => {
       const { state, events } = ok(applyIntent(game, 2, { t: 'mao11_decision', play: false }));
       expect(events.slice(0, 2)).toEqual([
         { t: 'mao_de_onze_decided', seat: 2, play: false },
-        { t: 'hand_won', team: 1, points: 1, ranBy: 0, scores: [11, 6] },
+        {
+          t: 'hand_won',
+          team: 1,
+          points: 1,
+          ranBy: 0,
+          reason: 'mao_de_onze_run',
+          tricks: [],
+          scores: [11, 6],
+        },
       ]);
       expect(events[2]).toMatchObject({ t: 'hand_dealt', handNumber: 2, maoDeOnze: 0 });
       expect(state.hand.maoDeOnze).toEqual({ team: 0, decision: 'pending' });
@@ -302,7 +327,15 @@ describe('applyIntent', () => {
       const blind = (seat: Seat): [Seat, GameIntent] => [seat, { t: 'play_blind', slot: 0 }];
       const { state, events } = run(game, [blind(0), blind(1), blind(0), blind(1)]);
       expect(events.slice(-2)).toEqual([
-        { t: 'hand_won', team: 0, points: 1, ranBy: null, scores: [12, 11] },
+        {
+          t: 'hand_won',
+          team: 0,
+          points: 1,
+          ranBy: null,
+          reason: 'tricks',
+          tricks: [0, null],
+          scores: [12, 11],
+        },
         { t: 'match_won', team: 0, scores: [12, 11] },
       ]);
       expect(state.winner).toBe(0);
@@ -317,7 +350,15 @@ describe('applyIntent', () => {
       ...trickSteps(2, 1),
     ]);
     expect(events.slice(-2)).toEqual([
-      { t: 'hand_won', team: 0, points: 3, ranBy: null, scores: [12, 3] },
+      {
+        t: 'hand_won',
+        team: 0,
+        points: 3,
+        ranBy: null,
+        reason: 'tricks',
+        tricks: [0, null],
+        scores: [12, 3],
+      },
       { t: 'match_won', team: 0, scores: [12, 3] },
     ]);
     expect(state.winner).toBe(0);
@@ -357,6 +398,7 @@ describe('viewFor', () => {
       tricks: [
         {
           winner: 0,
+          winnerSeat: 0,
           cards: [
             { seat: 0, faceDown: false, card: c('3c') },
             { seat: 1, faceDown: false, card: c('2c') },

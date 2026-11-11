@@ -12,7 +12,9 @@ describe('sfxFor', () => {
     expect(sfxFor({ t: 'truco_answered', seat: 0, answer: 'accept', stake: 3 }, 0)).toEqual([
       'chime',
     ]);
-    expect(sfxFor({ t: 'trick_won', winner: 0, leader: 0, cards: [] }, 0)).toEqual(['sweep']);
+    expect(sfxFor({ t: 'trick_won', winner: 0, winnerSeat: 0, leader: 0, cards: [] }, 0)).toEqual([
+      'sweep',
+    ]);
   });
   it('picks win or lose for match_won by team', () => {
     const e: GameEvent = { t: 'match_won', team: 1, scores: [3, 12] };
@@ -92,7 +94,6 @@ describe('createSfx', () => {
     const factory = vi.fn(() => fakeCtx() as never);
     const sfx = createSfx(fakeStorage('1'), factory);
     sfx.unlock();
-    sfx.startAmbience();
     sfx.play('slap');
     sfx.play('knock');
     expect(factory).not.toHaveBeenCalled();
@@ -117,23 +118,10 @@ describe('createSfx', () => {
     });
     expect(() => {
       sfx.unlock();
-      sfx.startAmbience();
       sfx.play('chime');
       sfx.setMuted(true);
       sfx.setMuted(false);
     }).not.toThrow();
-  });
-
-  it('starts ambience once and stops it on mute', () => {
-    const ctx = fakeCtx();
-    const sfx = createSfx(fakeStorage(), () => ctx as never);
-    sfx.unlock();
-    sfx.startAmbience();
-    sfx.startAmbience();
-    expect(ctx.createBufferSource).toHaveBeenCalledTimes(1);
-    sfx.setMuted(true);
-    sfx.setMuted(false);
-    expect(ctx.createBufferSource).toHaveBeenCalledTimes(2);
   });
 
   it('resumes a suspended context on every unlock', () => {
@@ -144,15 +132,5 @@ describe('createSfx', () => {
     sfx.unlock();
     expect(ctx.resume.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(sfx.ready).toBe(false);
-  });
-
-  it('stopAmbience stops the murmur', () => {
-    const ctx = fakeCtx();
-    const sfx = createSfx(fakeStorage(), () => ctx as never);
-    sfx.unlock();
-    sfx.startAmbience();
-    sfx.stopAmbience();
-    sfx.unlock();
-    expect(ctx.createBufferSource).toHaveBeenCalledTimes(1);
   });
 });

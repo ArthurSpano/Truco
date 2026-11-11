@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RoomState } from '../../shared/protocol.js';
 import type { Card, GameMode, GameView, Seat, Team } from '../../shared/types.js';
-import { tableModel } from './tableModel.js';
+import { initialOf, statusModel, tableModel } from './tableModel.js';
 
 const card = (id: Card['id'], rank: Card['rank'], suit: Card['suit']): Card => ({ id, rank, suit });
 
@@ -79,17 +79,23 @@ describe('tableModel', () => {
     expect(a.seats.filter((s) => s.active).map((s) => s.seat)).toEqual([2]);
     const b = tableModel(makeView(4, 1, { turn: null }), makeRoom(4));
     expect(b.seats.some((s) => s.active)).toBe(false);
+    const truco = { caller: 2, team: 0 as Team, stake: 3 };
+    const c = tableModel(makeView(4, 1, { turn: 2, truco }), makeRoom(4));
+    expect(c.seats.some((s) => s.active)).toBe(false);
+    const maoDeOnze = { team: 0 as Team, decision: 'pending' as const };
+    const d = tableModel(makeView(4, 1, { turn: 2, maoDeOnze }), makeRoom(4));
+    expect(d.seats.some((s) => s.active)).toBe(false);
   });
 
   it('maps pips relative to the viewer team and pads to three', () => {
     const view = makeView(4, 1, {
       tricks: [
-        { cards: [], winner: 1 },
-        { cards: [], winner: null },
+        { cards: [], winner: 1, winnerSeat: 1 },
+        { cards: [], winner: null, winnerSeat: null },
       ],
     });
     expect(tableModel(view, makeRoom(4)).pips).toEqual(['won', 'tied', 'pending']);
-    const lost = makeView(4, 1, { tricks: [{ cards: [], winner: 0 }] });
+    const lost = makeView(4, 1, { tricks: [{ cards: [], winner: 0, winnerSeat: 2 }] });
     expect(tableModel(lost, makeRoom(4)).pips).toEqual(['lost', 'pending', 'pending']);
     expect(tableModel(makeView(2, 0), makeRoom(2)).pips).toEqual(['pending', 'pending', 'pending']);
   });
@@ -122,19 +128,86 @@ describe('tableModel', () => {
     expect(m.vira.id).toBe('3h');
   });
 
-  it('keeps the last finished trick visible until the next card is played', () => {
+  it('does not redraw a finished trick (the trick_won animation shows it)', () => {
     const cards = [
       { seat: 0, faceDown: false as const, card: card('7d', '7', 'diamonds') },
       { seat: 1, faceDown: true as const },
     ];
-    const done = makeView(2, 0, { tricks: [{ cards, winner: 0 }] });
+    const done = makeView(2, 0, { tricks: [{ cards, winner: 0, winnerSeat: 0 }] });
     const m = tableModel(done, makeRoom(2));
     expect(m.trick).toEqual([]);
-    expect(m.lastTrick.map((t) => t.anchor)).toEqual(['bottom', 'top']);
-    expect(m.lastTrick[1]?.card.faceDown).toBe(true);
-    const next = makeView(2, 0, { tricks: [{ cards, winner: 0 }], trick: [cards[0] as never] });
-    expect(tableModel(next, makeRoom(2)).lastTrick).toEqual([]);
-    expect(tableModel(makeView(2, 0), makeRoom(2)).lastTrick).toEqual([]);
+    expect(m.pips).toEqual(['won', 'pending', 'pending']);
+  });
+
+  it('colours seats by the viewer team and gives avatars an initial', () => {
+    const m = tableModel(makeView(4, 1), makeRoom(4, [2]));
+    expect(m.seats.filter((s) => s.ours).map((s) => s.seat)).toEqual([1, 3]);
+    expect(m.seats.find((s) => s.seat === 0)?.initial).toBe('J');
+    expect(m.seats.find((s) => s.seat === 2)?.initial).toBe('?');
+    expect(m.mode).toBe(4);
+  });
+
+  it('anchors 6-player seats around the hexagon', () => {
+    const m = tableModel(makeView(6, 3), makeRoom(6));
+    expect(m.seats.map((s) => s.anchor)).toEqual([
+      'top',
+      'top-left',
+      'bottom-left',
+      'bottom',
+      'bottom-right',
+      'top-right',
+    ]);
+  });
+});
+
+describe('initialOf', () => {
+  it('takes the first letter, upper-cased, and falls back to ?', () => {
+    expect(initialOf('marina')).toBe('M');
+    expect(initialOf('  édson')).toBe('É');
+    expect(initialOf('')).toBe('?');
+  });
+});
+
+describe('statusModel', () => {
+  const names = (seat: number): string | null => (seat === 2 ? 'Caio' : null);
+
+  it('says whose turn it is and lights the dot only when the viewer can play', () => {
+    expect(statusModel(makeView(4, 0, { turn: 2 }), names)).toEqual({
+      text: 'Vez de Caio',
+      on: false,
+    });
+    expect(statusModel(makeView(4, 0, { turn: 3 }), names).text).toBe('Vez de Vazio');
+    const mine = makeView(4, 0, { turn: 0 });
+    expect(statusModel(mine, names)).toEqual({ text: 'Sua vez', on: false });
+    const playable = makeView(4, 0, { turn: 0, actions: { ...mine.actions, play: true } });
+    expect(statusModel(playable, names)).toEqual({ text: 'Sua vez', on: true });
+  });
+
+  it('covers truco, mão de onze, mão de ferro and the end of the match', () => {
+    const base = makeView(4, 0);
+    const truco = { caller: 1, team: 1 as Team, stake: 6 };
+    expect(
+      statusModel(
+        makeView(4, 0, { truco, actions: { ...base.actions, respond: { raise: 9 } } }),
+        names,
+      ),
+    ).toEqual({ text: 'SEIS! Responda', on: true });
+    expect(statusModel(makeView(4, 1, { truco }), names).text).toBe('Aguardando resposta…');
+    const m11 = { team: 1 as Team, decision: 'pending' as const };
+    expect(statusModel(makeView(4, 0, { maoDeOnze: m11 }), names).text).toBe(
+      'Eles decidem a mão de onze…',
+    );
+    expect(
+      statusModel(
+        makeView(4, 1, { maoDeOnze: m11, actions: { ...base.actions, decideMaoDeOnze: true } }),
+        names,
+      ),
+    ).toEqual({ text: 'Mão de onze: decida!', on: true });
+    expect(statusModel(makeView(4, 0, { maoDeFerro: true, turn: 0 }), names).text).toBe(
+      'Sua vez · às cegas',
+    );
+    expect(statusModel(makeView(4, 0, { winner: 0, turn: null }), names).text).toBe('Fim de jogo');
+    expect(statusModel(makeView(4, 0, { turn: null }), names).text).toBe('Embaralhando…');
   });
 });
 

@@ -2,35 +2,25 @@ import type { ClientMessage, RoomState } from '../../shared/protocol.js';
 import type { GameEvent, GameView } from '../../shared/types.js';
 import { createEventFeed } from '../state/eventFeed.js';
 import type { AppState } from '../state/reducer.js';
-import { AnimationQueue } from './animations.js';
-import { animationFor, type Animation } from './animationModel.js';
+import { Animator, type AnimContext } from './animations.js';
+import { animationsForBurst, scheduleBurst } from './animationModel.js';
 import { BubbleLayer } from './bubbles.js';
 import { bubblesFor } from './bubbleModel.js';
 import { el } from './dom.js';
 import { createHandStore } from './handFan.js';
 import type { SendLatch } from './hand.js';
+import { anchorFor, relativeIndex, seatGeometry } from './layout.js';
 import type { ScreenView } from './screen.js';
 import { renderTable } from './table.js';
 import { tableModel } from './tableModel.js';
 
-/** Handed to `onRendered` listeners after every rebuild. */
-export interface RenderedContext {
-  /** Persistent full-screen overlay (never replaced) for bubbles and animations. */
-  fx: HTMLElement;
-  /** The seat's chair in the CURRENT DOM (null if that seat is not on the table). */
-  anchorOf(seat: number): HTMLElement | null;
-}
-
 export interface TableScreen extends ScreenView {
-  /** Persistent overlay; survives snapshots. Lives inside the table-mode screen only. */
+  /** Persistent overlay inside the scaled stage; survives snapshots. */
   fx: HTMLElement;
-  anchorOf(seat: number): HTMLElement | null;
-  /** Registers a callback fired after every rebuild; returns an unsubscribe function. */
-  onRendered(cb: (view: GameView, ctx: RenderedContext) => void): () => void;
   /**
-   * Registers a callback for newly arrived events (one shared cursor for bubbles, sfx,
+   * Registers a callback for newly arrived events (one shared cursor for bubbles and
    * animations); returns an unsubscribe function. Events arrive BEFORE their burst's
-   * `game_state`, so this fires against the OLD DOM; `onRendered` fires against the new one.
+   * `game_state`, one message at a time, so this fires against the OLD view.
    */
   onEvents(cb: (events: GameEvent[], state: AppState) => void): () => void;
   /**
@@ -45,25 +35,42 @@ export interface TableDeps {
   leave(): void;
 }
 
-/** Table screen: the scene host is rebuilt from each snapshot; `fx` is never touched. */
+/**
+ * Table screen. Layout (see styles/table.css):
+ *
+ *   .table-screen.v1   full viewport, wooden-plank floor
+ *     .stage           the 390 x 844 design artboard, scaled by --u and centred
+ *       .scene-host    rebuilt from every snapshot
+ *       .fx-layer      persistent: bubbles, held trick, banner, toast, flash
+ *     .glow            vignette over the whole viewport
+ *     .overlay-host    rebuilt: full-viewport dialogs (mão de onze, game over)
+ */
 export function createTableScreen(deps: TableDeps): TableScreen {
-  const element = el('div', 'table-screen');
+  const element = el('div', 'table-screen v1 floor');
+  const stage = el('div', 'stage');
   const sceneHost = el('div', 'scene-host');
+  const glow = el('div', 'glow');
   const fx = el('div', 'fx-layer');
   fx.setAttribute('aria-hidden', 'true');
-  element.append(sceneHost, fx);
+  glow.setAttribute('aria-hidden', 'true');
+  const overlayHost = el('div', 'overlay-host');
+  stage.append(sceneHost, fx);
+  element.append(stage, glow, overlayHost);
 
   let shownView: GameView | null = null;
   let shownRoom: RoomState | null = null;
   let shownError: AppState['error'] = null;
   const hand = createHandStore();
   const latch: SendLatch = { pending: false };
-  const listeners = new Set<(view: GameView, ctx: RenderedContext) => void>();
 
-  const anchorOf = (seat: number): HTMLElement | null =>
-    sceneHost.querySelector<HTMLElement>(`.chair[data-seat="${String(seat)}"]`);
-  const ctx: RenderedContext = { fx, anchorOf };
-  const bubbles = new BubbleLayer(fx, anchorOf);
+  const bubbles = new BubbleLayer(fx, (seat) => {
+    const view = shownView;
+    if (!view || seat < 0 || seat >= view.mode) return null;
+    const anchor = anchorFor(view.mode, relativeIndex(view.seat, seat, view.mode));
+    return seatGeometry(view.mode, anchor).bubble;
+  });
+  const animator = new Animator(stage, () => sceneHost, fx);
+
   const eventListeners = new Set<(events: GameEvent[], state: AppState) => void>();
   // Seeded from the first state seen, so mounting or reconnecting never replays old events.
   const nextEvents = createEventFeed();
@@ -73,18 +80,14 @@ export function createTableScreen(deps: TableDeps): TableScreen {
       eventListeners.delete(cb);
     };
   };
-  const animations = new AnimationQueue(sceneHost, fx);
+
+  // The burst being collected: events since the last snapshot, plus the view they belong to.
+  let burst: GameEvent[] = [];
+  let burstView: GameView | null = null;
   onEvents((events, state) => {
     for (const b of bubblesFor(events)) bubbles.show(b);
-    // Queued now, played after the burst's snapshot has rendered (see the update() flush).
-    if (!state.view) return;
-    const { seat, mode } = state.view;
-    const found: Animation[] = [];
-    for (const e of events) {
-      const a = animationFor(e, seat, mode);
-      if (a) found.push(a);
-    }
-    animations.enqueue(found);
+    if (burst.length === 0) burstView = state.view;
+    burst.push(...events);
   });
 
   /** Runs on every state update (even ones that do not rebuild the table). */
@@ -94,18 +97,23 @@ export function createTableScreen(deps: TableDeps): TableScreen {
     for (const cb of [...eventListeners]) cb(events, state);
   };
 
+  /** Plays the collected burst against the freshly rendered snapshot. */
+  const flushBurst = (view: GameView): void => {
+    const events = burst;
+    const before = burstView ?? view;
+    burst = [];
+    burstView = null;
+    if (events.length === 0) return;
+    const ctx: AnimContext = { mode: view.mode, manilha: before.manilha };
+    const anims = animationsForBurst(events, view.seat, view.team, view.mode);
+    animator.run(scheduleBurst(anims), ctx);
+  };
+
   return {
     element,
     fx,
-    anchorOf,
     latch,
     onEvents,
-    onRendered(cb) {
-      listeners.add(cb);
-      return () => {
-        listeners.delete(cb);
-      };
-    },
     update(next) {
       feedEvents(next);
       if (!next.view || !next.room) return;
@@ -124,34 +132,33 @@ export function createTableScreen(deps: TableDeps): TableScreen {
       shownView = next.view;
       shownRoom = next.room;
       const model = tableModel(next.view, next.room);
-      sceneHost.replaceChildren(
-        renderTable(model, {
-          hand,
-          latch,
-          error: next.error?.text ?? null,
-          send: (m) => {
-            deps.send(m);
-          },
-          onPlay: (cardId, faceDown) => {
-            latch.pending = true;
-            deps.send({ t: 'play_card', cardId, faceDown });
-          },
-          onPlayBlind: (slot) => {
-            latch.pending = true;
-            deps.send({ t: 'play_blind', slot });
-          },
-          onLeave: () => {
-            deps.leave();
-          },
-        }),
-      );
-      for (const cb of [...listeners]) cb(next.view, ctx);
-      animations.flush();
+      const { scene, overlay } = renderTable(model, {
+        hand,
+        latch,
+        error: next.error?.text ?? null,
+        send: (m) => {
+          deps.send(m);
+        },
+        onPlay: (cardId, faceDown) => {
+          latch.pending = true;
+          deps.send({ t: 'play_card', cardId, faceDown });
+        },
+        onPlayBlind: (slot) => {
+          latch.pending = true;
+          deps.send({ t: 'play_blind', slot });
+        },
+        onLeave: () => {
+          deps.leave();
+        },
+      });
+      sceneHost.replaceChildren(scene);
+      if (overlay) overlayHost.replaceChildren(overlay);
+      else overlayHost.replaceChildren();
+      if (viewChanged) flushBurst(next.view);
     },
     destroy() {
       bubbles.destroy();
-      animations.destroy();
-      listeners.clear();
+      animator.destroy();
       eventListeners.clear();
       element.replaceChildren();
     },

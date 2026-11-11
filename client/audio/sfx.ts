@@ -4,9 +4,6 @@ export interface Sfx {
   /** Creates/resumes the AudioContext; call from a user gesture. No-op while muted. */
   unlock(): void;
   play(name: SfxName): void;
-  /** Starts the looping crowd murmur (once); silent while muted. */
-  startAmbience(): void;
-  stopAmbience(): void;
   /** True once the context exists and is running (gestures can stop retrying). */
   readonly ready: boolean;
   setMuted(muted: boolean): void;
@@ -48,8 +45,6 @@ export function createSfx(
   let broken = false; // the context could not be created
   let ctx: AudioContext | null = null;
   let noise: AudioBuffer | null = null;
-  let wantAmbience = false;
-  let ambience: { src: AudioBufferSourceNode; lfo: OscillatorNode } | null = null;
 
   function context(): AudioContext | null {
     if (muted || !armed || broken) return null;
@@ -109,46 +104,6 @@ export function createSfx(
     osc.stop(t + dur + 0.02);
   }
 
-  function syncAmbience(): void {
-    if (muted || !wantAmbience) {
-      if (ambience) {
-        const { src, lfo } = ambience;
-        ambience = null;
-        for (const node of [src, lfo]) {
-          try {
-            node.stop();
-          } catch {
-            // already stopped
-          }
-          node.disconnect();
-        }
-      }
-      return;
-    }
-    if (ambience) return;
-    const c = context();
-    if (!c) return;
-    const src = c.createBufferSource();
-    src.buffer = noiseBuffer(c);
-    src.loop = true;
-    const filter = c.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 500;
-    filter.Q.value = 0.7;
-    const gain = c.createGain();
-    gain.gain.value = 0.05;
-    // Slow wobble so the murmur breathes.
-    const lfo = c.createOscillator();
-    lfo.frequency.value = 0.15;
-    const depth = c.createGain();
-    depth.gain.value = 0.02;
-    lfo.connect(depth).connect(gain.gain);
-    lfo.start();
-    src.connect(filter).connect(gain).connect(c.destination);
-    src.start();
-    ambience = { src, lfo };
-  }
-
   return {
     get muted() {
       return muted;
@@ -159,7 +114,6 @@ export function createSfx(
     unlock() {
       armed = true;
       context();
-      syncAmbience();
     },
     play(name) {
       const c = context();
@@ -191,14 +145,6 @@ export function createSfx(
           break;
       }
     },
-    stopAmbience() {
-      wantAmbience = false;
-      syncAmbience();
-    },
-    startAmbience() {
-      wantAmbience = true;
-      syncAmbience();
-    },
     setMuted(value) {
       muted = value;
       try {
@@ -206,7 +152,6 @@ export function createSfx(
       } catch {
         // Not persisted; still applies for this session.
       }
-      syncAmbience();
     },
   };
 }
