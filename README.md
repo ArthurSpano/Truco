@@ -74,6 +74,7 @@ Decisions so far:
 - **Interfaces are read per request.** If the host joins a hotspot after starting the server, `/api/info` and the QR code pick up the new address.
 - **Enforced boundaries.** ESLint forbids `engine/` from importing `server/` or `client/`, `shared/` from importing anything but itself, and the client from importing `engine/` or `server/`. The client can only render server snapshots.
 - **Caching.** Vite's fingerprinted `assets/` are cached forever; `index.html` is revalidated, so phones get a new build on reload. Unknown app routes fall back to `index.html`, but missing files 404 (a stale bundle never gets HTML in place of JavaScript).
+- **Scene themes are per viewer and pure CSS.** The table scene comes in three looks (Taverna, Praça, Gramado). Each is scoped by a root class (`theme-taverna`, `theme-praca`, `theme-gramado`) and only touches the backdrop, chairs, rug and felt; the HUD, hand and cards are never restyled. The choice lives in the player's own `localStorage` (`truco.scene`), so there is no protocol change and nothing on the server.
 
 ### HTTP API
 
