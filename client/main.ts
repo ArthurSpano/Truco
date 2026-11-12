@@ -1,6 +1,8 @@
 import './styles/base.css';
 import './styles/cards.css';
 import './styles/scene.css';
+import './styles/themes/praca.css';
+import './styles/themes/gramado.css';
 import './styles/table.css';
 import './styles/bubbles.css';
 import './styles/animations.css';

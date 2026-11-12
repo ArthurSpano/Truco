@@ -4,11 +4,14 @@ import { createEventFeed } from '../state/eventFeed.js';
 import type { AppState } from '../state/reducer.js';
 import { Animator, type AnimContext } from './animations.js';
 import { animationsForBurst, scheduleBurst } from './animationModel.js';
+import { renderBackdrop } from './backdrop.js';
 import { BubbleLayer } from './bubbles.js';
 import { bubblesFor } from './bubbleModel.js';
 import { el } from './dom.js';
 import { createHandStore } from './handFan.js';
 import type { SendLatch } from './hand.js';
+import { createThemeStore, SCENE_THEMES, type SceneTheme, type ThemeStore } from './sceneTheme.js';
+import { renderThemeButton } from './themeButton.js';
 import { anchorFor, relativeIndex, seatGeometry } from './layout.js';
 import type { ScreenView } from './screen.js';
 import { renderTable } from './table.js';
@@ -35,18 +38,25 @@ export interface TableDeps {
   leave(): void;
 }
 
+/** Shared across screen re-creations so the choice survives when storage is blocked. */
+let sceneThemes: ThemeStore | undefined;
+
 /**
  * Table screen. Layout (see styles/table.css):
  *
- *   .table-screen.v1   full viewport, wooden-plank floor
+ *   .table-screen.v1   full viewport, wooden-plank floor; carries a theme-<scene> class
+ *     .backdrop        scenery behind the stage, replaced when the theme changes
  *     .stage           the 390 x 844 design artboard, scaled by --u and centred
  *       .scene-host    rebuilt from every snapshot
  *       .fx-layer      persistent: bubbles, held trick, banner, toast, flash
  *     .glow            vignette over the whole viewport
  *     .overlay-host    rebuilt: full-viewport dialogs (mão de onze, game over)
+ *     .theme-btn       cycles the scene (taverna, praça, gramado)
  */
 export function createTableScreen(deps: TableDeps): TableScreen {
-  const element = el('div', 'table-screen v1 floor');
+  const themes = (sceneThemes ??= createThemeStore());
+  const element = el('div', `table-screen v1 floor theme-${themes.get()}`);
+  let backdrop = renderBackdrop(themes.get());
   const stage = el('div', 'stage');
   const sceneHost = el('div', 'scene-host');
   const glow = el('div', 'glow');
@@ -55,7 +65,15 @@ export function createTableScreen(deps: TableDeps): TableScreen {
   glow.setAttribute('aria-hidden', 'true');
   const overlayHost = el('div', 'overlay-host');
   stage.append(sceneHost, fx);
-  element.append(stage, glow, overlayHost);
+  /** Swaps only the theme class and the backdrop; the table, hand and animator are untouched. */
+  const applyTheme = (t: SceneTheme): void => {
+    for (const other of SCENE_THEMES) element.classList.toggle(`theme-${other}`, other === t);
+    const next = renderBackdrop(t);
+    backdrop.replaceWith(next);
+    backdrop = next;
+  };
+  const themeButton = renderThemeButton(themes, applyTheme);
+  element.append(backdrop, stage, glow, overlayHost, themeButton);
 
   let shownView: GameView | null = null;
   let shownRoom: RoomState | null = null;

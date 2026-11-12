@@ -62,6 +62,7 @@ Progress tracker for Truco de Boteco. Check a box once the feature is working an
 
 - [x] Animations (card slide, trick sweep, chair wiggle, screen shake)
 - [x] Sounds with WebAudio and mute toggle (unverified in a browser)
+- [x] Scene themes: Taverna, Praça (concreto), Gramado — per-player, persisted
 - [ ] Quick-chat phrases
 - [ ] Reconnect handling in the UI
 - [ ] PWA manifest
