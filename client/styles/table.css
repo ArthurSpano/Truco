@@ -10,6 +10,7 @@ body:has(#app.table-mode) {
 }
 
 #app.table-mode {
+  --mute-top: calc(var(--stage-y) + 92 * var(--u));
   display: block;
   max-width: none;
   margin: 0;
@@ -36,7 +37,7 @@ body:has(#app.table-mode) {
 
 /* Mute button: under the vira box, on the artboard's right edge. */
 #app.table-mode .mute-btn {
-  top: calc(var(--stage-y) + 92 * var(--u));
+  top: var(--mute-top);
   right: calc(var(--stage-x) + 14 * var(--u));
   width: max(44px, calc(44 * var(--u)));
   height: max(44px, calc(44 * var(--u)));

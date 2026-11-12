@@ -344,7 +344,7 @@
  * two crossbars at the ends of the long axis (armrests), drawn on ::before. --w and --h pick the
  * axis: the clamps give 4u borders on the long-axis ends and 0 on the others.
  */
-.v1.theme-gramado .chair {
+.v1.theme-gramado .chair:is(.t1, .t2) {
   border-radius: calc(18 * var(--u));
   border: calc(4 * var(--u)) solid #3b3b40;
   background:

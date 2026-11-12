@@ -16,7 +16,7 @@ export function renderThemeButton(
   button.type = 'button';
   const paint = (): void => {
     const current = store.get();
-    const label = `Cenário: ${THEME_LABEL[current]}. Trocar`;
+    const label = `Cenário: ${THEME_LABEL[current]}. Mudar para ${THEME_LABEL[nextTheme(current)]}`;
     button.textContent = THEME_ICON[current];
     button.setAttribute('aria-label', label);
     button.title = label;

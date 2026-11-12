@@ -300,7 +300,7 @@
 }
 
 /* Fixed round concrete stools; the team shows as a painted ring on the seat. */
-.v1.theme-praca .chair {
+.v1.theme-praca .chair:is(.t1, .t2) {
   border-radius: 50%;
   background:
     radial-gradient(

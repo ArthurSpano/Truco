@@ -10,7 +10,7 @@ import { bubblesFor } from './bubbleModel.js';
 import { el } from './dom.js';
 import { createHandStore } from './handFan.js';
 import type { SendLatch } from './hand.js';
-import { createThemeStore, SCENE_THEMES, type SceneTheme } from './sceneTheme.js';
+import { createThemeStore, SCENE_THEMES, type SceneTheme, type ThemeStore } from './sceneTheme.js';
 import { renderThemeButton } from './themeButton.js';
 import { anchorFor, relativeIndex, seatGeometry } from './layout.js';
 import type { ScreenView } from './screen.js';
@@ -38,6 +38,9 @@ export interface TableDeps {
   leave(): void;
 }
 
+/** Shared across screen re-creations so the choice survives when storage is blocked. */
+let sceneThemes: ThemeStore | undefined;
+
 /**
  * Table screen. Layout (see styles/table.css):
  *
@@ -51,7 +54,7 @@ export interface TableDeps {
  *     .theme-btn       cycles the scene (taverna, praça, gramado)
  */
 export function createTableScreen(deps: TableDeps): TableScreen {
-  const themes = createThemeStore();
+  const themes = (sceneThemes ??= createThemeStore());
   const element = el('div', `table-screen v1 floor theme-${themes.get()}`);
   let backdrop = renderBackdrop(themes.get());
   const stage = el('div', 'stage');
