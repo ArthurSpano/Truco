@@ -1,34 +1,392 @@
-/* Placeholder floor; the scenery is drawn in a later task. */
+/*
+ * "Gramado" scene: a sunny backyard lawn on a churrasco afternoon, seen from above. Mown grass
+ * stripes, a cable-spool (carretel) table under a red-and-cream checkered cloth, and folding
+ * camping chairs in the team colours. Same geometry as scene.css; only paint changes here.
+ * Lengths are design pixels of the 390 x 844 artboard times --u.
+ */
+
+/* Warm late-afternoon sun, applied to everything except the table top. */
+.v1.theme-gramado {
+  --grade: saturate(1.18) brightness(1.03) sepia(0.08);
+}
+
+/*
+ * Mown lawn: light/dark stripes about 70u wide, tilted about 12deg. The stripe tile is
+ * 140u x 658.6u (140 / tan 12deg) painted "to bottom right", so its colour lines run along the
+ * tile's other diagonal and the tile repeats seamlessly; it is anchored to the stage. On top:
+ * broad mottling, two sparse darker clover patches, short dark and light grass blades, and a
+ * warm sun wash from the top-right. Seven layers in all, kept light for low-end phones.
+ */
 .v1.theme-gramado .backdrop {
-  background: #4f8a3a;
+  --lawn-a: #6aa94c;
+  --lawn-b: #5a9840;
+  --grid-x: var(--stage-x);
+  --grid-y: var(--stage-y);
+  background-color: #619f46;
+  background-image:
+    radial-gradient(ellipse at 96% 0%, rgb(255 232 160 / 0.42), transparent 58%),
+    radial-gradient(
+      ellipse calc(20 * var(--u)) calc(14 * var(--u)) at 30% 40%,
+      rgb(38 96 32 / 0.42) 0 40%,
+      rgb(38 96 32 / 0.16) 70%,
+      transparent
+    ),
+    radial-gradient(
+      ellipse calc(15 * var(--u)) calc(18 * var(--u)) at 70% 75%,
+      rgb(38 96 32 / 0.38) 0 35%,
+      rgb(38 96 32 / 0.14) 70%,
+      transparent
+    ),
+    radial-gradient(
+      ellipse calc(0.6 * var(--u)) calc(2.6 * var(--u)) at 30% 50%,
+      rgb(28 72 22 / 0.3),
+      transparent
+    ),
+    radial-gradient(
+      ellipse calc(0.5 * var(--u)) calc(2.2 * var(--u)) at 60% 40%,
+      rgb(220 245 160 / 0.24),
+      transparent
+    ),
+    radial-gradient(closest-side, rgb(30 70 20 / 0.14), transparent),
+    linear-gradient(
+      to bottom right,
+      var(--lawn-a) 0 21%,
+      var(--lawn-b) 25% 46%,
+      var(--lawn-a) 50% 71%,
+      var(--lawn-b) 75% 96%,
+      var(--lawn-a) 100%
+    );
+  background-size:
+    100% 100%,
+    calc(370 * var(--u)) calc(290 * var(--u)),
+    calc(230 * var(--u)) calc(410 * var(--u)),
+    calc(7 * var(--u)) calc(9 * var(--u)),
+    calc(11 * var(--u)) calc(8 * var(--u)),
+    calc(420 * var(--u)) calc(360 * var(--u)),
+    calc(140 * var(--u)) calc(658.6 * var(--u));
+  background-position:
+    0 0,
+    var(--grid-x) var(--grid-y),
+    calc(var(--grid-x) + 90 * var(--u)) calc(var(--grid-y) + 40 * var(--u)),
+    0 0,
+    calc(4 * var(--u)) calc(3 * var(--u)),
+    var(--grid-x) var(--grid-y),
+    var(--grid-x) var(--grid-y);
+  background-repeat: no-repeat, repeat, repeat, repeat, repeat, repeat, repeat;
 }
-.v1.theme-gramado .felt {
-  filter: none;
-}
+
+/* Tree-canopy shadows: soft lobed blobs bleeding off the top-right and bottom-left edges. */
 .v1.theme-gramado .props .shade {
-  display: block;
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.28;
+  background:
+    radial-gradient(ellipse 30% 28% at 34% 38%, rgb(12 42 18 / 0.85) 30%, transparent),
+    radial-gradient(ellipse 27% 25% at 66% 44%, rgb(12 42 18 / 0.85) 30%, transparent),
+    radial-gradient(ellipse 30% 25% at 48% 70%, rgb(12 42 18 / 0.85) 30%, transparent),
+    radial-gradient(ellipse 48% 46% at 50% 50%, rgb(12 42 18 / 0.55) 20%, transparent);
 }
 .v1.theme-gramado .props .s1 {
-  display: block;
+  left: calc(220 * var(--u));
+  top: calc(-90 * var(--u));
+  width: calc(320 * var(--u));
+  height: calc(290 * var(--u));
+  transform: rotate(-20deg);
 }
 .v1.theme-gramado .props .s2 {
-  display: block;
+  left: calc(-140 * var(--u));
+  top: calc(540 * var(--u));
+  width: calc(300 * var(--u));
+  height: calc(320 * var(--u));
+  transform: rotate(15deg);
 }
+
+/*
+ * Daisy clusters: each daisy is one radial gradient (yellow eye, petals, a faint green rim so
+ * it reads on light stripes). --p is the petal colour.
+ */
 .v1.theme-gramado .props .flowers {
-  display: block;
+  --p: #fffdf2;
+  --e: #f2c12e;
+  position: absolute;
+  width: calc(34 * var(--u));
+  height: calc(30 * var(--u));
+  background:
+    radial-gradient(
+      circle at calc(7 * var(--u)) calc(8 * var(--u)),
+      var(--e) 0 calc(1.3 * var(--u)),
+      var(--p) calc(1.5 * var(--u)) calc(3.4 * var(--u)),
+      rgb(30 70 20 / 0.35) calc(3.5 * var(--u)) calc(4 * var(--u)),
+      transparent calc(4.2 * var(--u))
+    ),
+    radial-gradient(
+      circle at calc(18 * var(--u)) calc(5 * var(--u)),
+      var(--e) 0 calc(1.1 * var(--u)),
+      var(--p) calc(1.3 * var(--u)) calc(3 * var(--u)),
+      rgb(30 70 20 / 0.35) calc(3.1 * var(--u)) calc(3.6 * var(--u)),
+      transparent calc(3.8 * var(--u))
+    ),
+    radial-gradient(
+      circle at calc(14 * var(--u)) calc(19 * var(--u)),
+      var(--e) 0 calc(1.3 * var(--u)),
+      var(--p) calc(1.5 * var(--u)) calc(3.6 * var(--u)),
+      rgb(30 70 20 / 0.35) calc(3.7 * var(--u)) calc(4.2 * var(--u)),
+      transparent calc(4.4 * var(--u))
+    ),
+    radial-gradient(
+      circle at calc(27 * var(--u)) calc(15 * var(--u)),
+      var(--e) 0 calc(1 * var(--u)),
+      var(--p) calc(1.2 * var(--u)) calc(2.8 * var(--u)),
+      rgb(30 70 20 / 0.35) calc(2.9 * var(--u)) calc(3.4 * var(--u)),
+      transparent calc(3.6 * var(--u))
+    ),
+    radial-gradient(
+      circle at calc(25 * var(--u)) calc(26 * var(--u)),
+      var(--e) 0 calc(1 * var(--u)),
+      var(--p) calc(1.2 * var(--u)) calc(3 * var(--u)),
+      rgb(30 70 20 / 0.35) calc(3.1 * var(--u)) calc(3.6 * var(--u)),
+      transparent calc(3.8 * var(--u))
+    );
 }
 .v1.theme-gramado .props .f1 {
-  display: block;
+  left: calc(274 * var(--u));
+  top: calc(150 * var(--u));
 }
 .v1.theme-gramado .props .f2 {
-  display: block;
+  --p: #ffe46b;
+  --e: #e08a1e;
+  left: calc(92 * var(--u));
+  top: calc(196 * var(--u));
+  transform: rotate(70deg);
 }
 .v1.theme-gramado .props .f3 {
-  display: block;
+  left: calc(350 * var(--u));
+  top: calc(610 * var(--u));
+  transform: rotate(-40deg);
 }
+
+/*
+ * Styrofoam cooler (isopor) seen from above: off-white box, the lid as an inset panel with a
+ * seam around it and a moulded finger grip, a short shadow on the grass. No marks.
+ */
 .v1.theme-gramado .props .cooler {
-  display: block;
+  position: absolute;
+  left: calc(20 * var(--u));
+  top: calc(146 * var(--u));
+  width: calc(62 * var(--u));
+  height: calc(44 * var(--u));
+  border-radius: calc(7 * var(--u));
+  border: calc(2 * var(--u)) solid #8f897c;
+  background:
+    radial-gradient(
+        circle at 50% 50%,
+        rgb(150 140 120 / 0.22) 0 calc(0.5 * var(--u)),
+        transparent calc(0.8 * var(--u))
+      )
+      0 0 / calc(3 * var(--u)) calc(3 * var(--u)),
+    linear-gradient(160deg, #fbf9f3, #e4dfd3);
+  box-shadow: calc(4 * var(--u)) calc(6 * var(--u)) 0 rgb(10 40 10 / 0.3);
+  transform: rotate(-8deg);
 }
+.v1.theme-gramado .props .cooler::before {
+  content: '';
+  position: absolute;
+  inset: calc(5 * var(--u));
+  border-radius: calc(4 * var(--u));
+  border: calc(1.5 * var(--u)) solid rgb(120 112 98 / 0.55);
+  box-shadow: inset 0 calc(1.5 * var(--u)) 0 rgb(255 255 255 / 0.7);
+}
+.v1.theme-gramado .props .cooler::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(18 * var(--u));
+  height: calc(6 * var(--u));
+  margin: calc(-3 * var(--u)) 0 0 calc(-9 * var(--u));
+  border-radius: 99px;
+  background: linear-gradient(180deg, rgb(110 102 88 / 0.5), rgb(255 255 255 / 0.4));
+}
+
+/*
+ * Corner of a red-and-cream gingham picnic blanket, rotated and mostly off the stage's
+ * bottom-left edge, with a short fringe along its visible side.
+ */
 .v1.theme-gramado .props .blanket {
-  display: block;
+  position: absolute;
+  left: calc(-196 * var(--u));
+  top: calc(700 * var(--u));
+  width: calc(220 * var(--u));
+  height: calc(190 * var(--u));
+  background:
+    linear-gradient(90deg, rgb(181 50 44 / 0.55) 50%, transparent 0) 0 0 / calc(28 * var(--u))
+      calc(28 * var(--u)),
+    linear-gradient(180deg, rgb(181 50 44 / 0.55) 50%, transparent 0) 0 0 / calc(28 * var(--u))
+      calc(28 * var(--u)),
+    #f3e6c8;
+  box-shadow:
+    calc(4 * var(--u)) calc(6 * var(--u)) 0 rgb(10 40 10 / 0.3),
+    inset 0 0 0 calc(2 * var(--u)) rgb(120 30 26 / 0.35);
+  transform: rotate(16deg);
+}
+.v1.theme-gramado .props .blanket::before,
+.v1.theme-gramado .props .blanket::after {
+  content: '';
+  position: absolute;
+}
+.v1.theme-gramado .props .blanket::after {
+  top: 0;
+  bottom: 0;
+  right: calc(-6 * var(--u));
+  width: calc(6 * var(--u));
+  background: repeating-linear-gradient(
+    180deg,
+    #efe0bf 0 calc(1.5 * var(--u)),
+    transparent calc(1.5 * var(--u)) calc(3.5 * var(--u))
+  );
+}
+.v1.theme-gramado .props .blanket::before {
+  left: 0;
+  right: 0;
+  top: calc(-6 * var(--u));
+  height: calc(6 * var(--u));
+  background: repeating-linear-gradient(
+    90deg,
+    #efe0bf 0 calc(1.5 * var(--u)),
+    transparent calc(1.5 * var(--u)) calc(3.5 * var(--u))
+  );
+}
+
+/* The rug becomes the spool table's soft shadow on the grass, pushed down-right. */
+.v1.theme-gramado .rugc {
+  border: none;
+  box-shadow: none;
+  background: radial-gradient(
+    ellipse 46% 44% at 54% 56%,
+    rgb(10 40 10 / 0.35) 0 72%,
+    rgb(10 40 10 / 0) 100%
+  );
+  filter: var(--grade);
+}
+
+/*
+ * Cable-spool flange: light plywood with concentric end-grain rings, six dark bolt heads on a
+ * ring between the cloth and the edge (centre 160u,160u of the padding box, radius 151u, every
+ * 60deg from 30deg). Keeps the 5u ink outline and the cartoon drop shadow.
+ */
+.v1.theme-gramado .rim {
+  --bolt:
+    #3b3328 0 calc(3 * var(--u)), rgb(59 51 40 / 0.35) calc(3.6 * var(--u)),
+    transparent calc(4.4 * var(--u));
+  border: calc(5 * var(--u)) solid var(--ink);
+  background:
+    radial-gradient(circle at calc(290.8 * var(--u)) calc(84.5 * var(--u)), var(--bolt)),
+    radial-gradient(circle at calc(290.8 * var(--u)) calc(235.5 * var(--u)), var(--bolt)),
+    radial-gradient(circle at calc(160 * var(--u)) calc(311 * var(--u)), var(--bolt)),
+    radial-gradient(circle at calc(29.2 * var(--u)) calc(235.5 * var(--u)), var(--bolt)),
+    radial-gradient(circle at calc(29.2 * var(--u)) calc(84.5 * var(--u)), var(--bolt)),
+    radial-gradient(circle at calc(160 * var(--u)) calc(9 * var(--u)), var(--bolt)),
+    radial-gradient(
+      ellipse calc(70 * var(--u)) calc(26 * var(--u)) at 30% 15%,
+      rgb(255 255 255 / 0.4),
+      transparent
+    ),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgb(140 95 45 / 0.22) 0 calc(1.2 * var(--u)),
+      transparent calc(1.8 * var(--u)) calc(5.5 * var(--u))
+    ),
+    radial-gradient(circle at 40% 30%, #ecd3a4, #d9b47c 70%, #c79c62);
+  box-shadow:
+    0 calc(12 * var(--u)) 0 calc(4 * var(--u)) rgb(10 40 10 / 0.35),
+    inset 0 calc(-10 * var(--u)) 0 rgb(120 75 30 / 0.25),
+    inset 0 calc(6 * var(--u)) 0 rgb(255 255 255 / 0.4);
+  filter: var(--grade);
+}
+
+/*
+ * Round gingham tablecloth (toalha xadrez): translucent muted-red bands over cream, 22u checks
+ * centred on the table, so the overlaps give the classic three tones while staying light enough
+ * for the white played cards. Two faint fold creases cross the centre.
+ */
+.v1.theme-gramado .felt {
+  --check: calc(44 * var(--u));
+  --band: rgb(181 65 58 / 0.42);
+  background:
+    linear-gradient(
+      90deg,
+      transparent calc(50% - 1.5 * var(--u)),
+      rgb(90 40 20 / 0.08) calc(50% - 1.5 * var(--u)) 50%,
+      rgb(255 255 255 / 0.22) 50% calc(50% + 1.5 * var(--u)),
+      transparent calc(50% + 1.5 * var(--u))
+    ),
+    linear-gradient(
+      180deg,
+      transparent calc(50% - 1.5 * var(--u)),
+      rgb(90 40 20 / 0.08) calc(50% - 1.5 * var(--u)) 50%,
+      rgb(255 255 255 / 0.22) 50% calc(50% + 1.5 * var(--u)),
+      transparent calc(50% + 1.5 * var(--u))
+    ),
+    linear-gradient(90deg, var(--band) 50%, transparent 0) 50% 50% / var(--check) var(--check),
+    linear-gradient(180deg, var(--band) 50%, transparent 0) 50% 50% / var(--check) var(--check),
+    radial-gradient(circle at 50% 38%, #f8eed6, #f3e6c8 60%, #e6d6b2);
+  box-shadow: inset 0 calc(10 * var(--u)) 0 rgb(90 30 20 / 0.14);
+  filter: none;
+}
+
+/* Cloth hem: a solid cream ring. */
+.v1.theme-gramado .fring {
+  border: calc(3 * var(--u)) solid rgb(255 245 225 / 0.6);
+}
+
+/*
+ * Folding camping chairs: team-coloured fabric with a fine weave, a dark aluminium frame, and
+ * two crossbars at the ends of the long axis (armrests), drawn on ::before. --w and --h pick the
+ * axis: the clamps give 4u borders on the long-axis ends and 0 on the others.
+ */
+.v1.theme-gramado .chair {
+  border-radius: calc(18 * var(--u));
+  border: calc(4 * var(--u)) solid #3b3b40;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.07) 0 calc(1 * var(--u)),
+      transparent calc(1 * var(--u)) calc(3 * var(--u))
+    ),
+    radial-gradient(circle at 35% 28%, var(--fab-hi), var(--fab) 72%);
+  box-shadow: 0 calc(8 * var(--u)) 0 rgb(10 40 10 / 0.4);
+  filter: var(--grade);
+}
+.v1.theme-gramado .chair::before {
+  content: '';
+  position: absolute;
+  inset: calc(7 * var(--u));
+  border-style: solid;
+  border-color: #3b3b40;
+  border-inline-width: clamp(0px, (var(--w) - var(--h)) * var(--u), calc(5 * var(--u)));
+  border-block-width: clamp(0px, (var(--h) - var(--w)) * var(--u), calc(5 * var(--u)));
+  border-radius: calc(3 * var(--u));
+  pointer-events: none;
+}
+.v1.theme-gramado .chair::after {
+  inset: calc(17 * var(--u));
+  border-radius: calc(10 * var(--u));
+  border: calc(2 * var(--u)) dashed rgb(255 255 255 / 0.5);
+  background: radial-gradient(ellipse at 50% 55%, rgb(0 0 0 / 0.16), transparent 75%);
+}
+.v1.theme-gramado .chair.t1 {
+  --fab-hi: #f0b85a;
+  --fab: #d98d2b;
+}
+.v1.theme-gramado .chair.t2 {
+  --fab-hi: #c8454d;
+  --fab: #8e1f2a;
+}
+.v1.theme-gramado .chair.away {
+  filter: var(--grade) saturate(0.4) brightness(0.8);
+}
+
+/* Warm golden vignette. */
+.v1.theme-gramado .glow {
+  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgb(40 25 0 / 0.5) 100%);
 }
