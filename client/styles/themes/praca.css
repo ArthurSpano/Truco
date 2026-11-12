@@ -1,0 +1,37 @@
+/* Placeholder floor; the scenery is drawn in a later task. */
+.v1.theme-praca .backdrop {
+  background: #9a9a94;
+}
+.v1.theme-praca .felt {
+  filter: none;
+}
+.v1.theme-praca .props .shade {
+  display: block;
+}
+.v1.theme-praca .props .s1 {
+  display: block;
+}
+.v1.theme-praca .props .s2 {
+  display: block;
+}
+.v1.theme-praca .props .s3 {
+  display: block;
+}
+.v1.theme-praca .props .leaf {
+  display: block;
+}
+.v1.theme-praca .props .l1 {
+  display: block;
+}
+.v1.theme-praca .props .l2 {
+  display: block;
+}
+.v1.theme-praca .props .l3 {
+  display: block;
+}
+.v1.theme-praca .props .l4 {
+  display: block;
+}
+.v1.theme-praca .props .grate {
+  display: block;
+}

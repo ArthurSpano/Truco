@@ -1,0 +1,34 @@
+/* Placeholder floor; the scenery is drawn in a later task. */
+.v1.theme-gramado .backdrop {
+  background: #4f8a3a;
+}
+.v1.theme-gramado .felt {
+  filter: none;
+}
+.v1.theme-gramado .props .shade {
+  display: block;
+}
+.v1.theme-gramado .props .s1 {
+  display: block;
+}
+.v1.theme-gramado .props .s2 {
+  display: block;
+}
+.v1.theme-gramado .props .flowers {
+  display: block;
+}
+.v1.theme-gramado .props .f1 {
+  display: block;
+}
+.v1.theme-gramado .props .f2 {
+  display: block;
+}
+.v1.theme-gramado .props .f3 {
+  display: block;
+}
+.v1.theme-gramado .props .cooler {
+  display: block;
+}
+.v1.theme-gramado .props .blanket {
+  display: block;
+}

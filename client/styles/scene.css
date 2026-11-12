@@ -308,3 +308,36 @@
   font-size: calc(9 * var(--u));
   letter-spacing: 0.08em;
 }
+
+/* Scene themes: backdrop layer behind the stage (taverna draws none) and the switch button. */
+.v1 .backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  filter: var(--grade, none);
+}
+.v1 .props {
+  position: absolute;
+  left: var(--stage-x);
+  top: var(--stage-y);
+  width: calc(390 * var(--u));
+  height: calc(844 * var(--u));
+}
+.theme-btn {
+  position: fixed;
+  z-index: 25;
+  top: calc(var(--stage-y) + 144 * var(--u));
+  right: calc(var(--stage-x) + 14 * var(--u));
+  width: max(44px, calc(44 * var(--u)));
+  height: max(44px, calc(44 * var(--u)));
+  padding: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  border: 3px solid var(--cream);
+  border-radius: 50%;
+  background: var(--glass);
+  color: var(--cream);
+  box-shadow: 0 4px 0 rgb(20 6 50 / 0.5);
+  touch-action: manipulation;
+}
