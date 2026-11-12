@@ -327,7 +327,7 @@
 .theme-btn {
   position: fixed;
   z-index: 25;
-  top: calc(var(--stage-y) + 144 * var(--u));
+  top: calc(var(--stage-y) + 92 * var(--u) + max(44px, 44 * var(--u)) + 8 * var(--u));
   right: calc(var(--stage-x) + 14 * var(--u));
   width: max(44px, calc(44 * var(--u)));
   height: max(44px, calc(44 * var(--u)));
